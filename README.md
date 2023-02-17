@@ -17,11 +17,12 @@ A little bit of the inventory system has been added. This includes a simple clas
 
 ## Text 
 I would like the text to be rendered from scratch using binary representations for each char. It could look something like this: 
-
-\##### 11111
-\#   # 10001
-\#   # 10001
-\##### 11111
+```
+##### 11111
+#   # 10001
+#   # 10001
+##### 11111
+```
 This can be rendered as a 2D accelerated graphic. 
 
 ## Biomes
