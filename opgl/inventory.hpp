@@ -8,7 +8,8 @@ const enum {
     CONTAINER,
     HAPPY_FACE,
     BEDROCK, 
-    GRASS
+    GRASS,
+    WATER
 };
 
 class Inventory {
@@ -23,6 +24,7 @@ public:
         blocks.insert({ HAPPY_FACE, startnum });
         blocks.insert({ BEDROCK, startnum });
         blocks.insert({ GRASS, startnum });
+        blocks.insert({ WATER, startnum });
     }
     int getBlockCount(int type) {
         return blocks.at(type);

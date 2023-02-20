@@ -65,6 +65,9 @@ float lastFrame = 0.0f;
 
 std::unordered_set<Block> cubePositions;
 
+// Settings
+float waterLevel = 5;
+
 int main() {
     // Opengl treats the 0,0 locations on images to be the bottom. This flips the images so the 0, 0 will be at the top.
     stbi_set_flip_vertically_on_load(true);
@@ -235,13 +238,14 @@ int main() {
     int width, height, nrChannels;
     unsigned char* data = stbi_load("c:/users/ethan/Documents/container.jpg", &width, &height, &nrChannels, 0);
 
-    unsigned int containerTexture, dimondOreTexture, awesomeFaceTexture, bedrockTexture, grassTexture;
+    unsigned int containerTexture, dimondOreTexture, awesomeFaceTexture, bedrockTexture, grassTexture, waterTexture;
 
     loadTexture(containerTexture, "c:/users/ethan/Documents/container.jpg", GL_LINEAR, GL_RGB);
     loadTexture(dimondOreTexture, "c:/users/ethan/Documents/dimonds.png", GL_LINEAR, GL_RGBA);
     loadTexture(awesomeFaceTexture, "c:/users/ethan/Documents/awesomeface.png", GL_LINEAR, GL_RGBA);
     loadTexture(bedrockTexture, "c:/users/ethan/Documents/bedrock.png", GL_LINEAR, GL_RGB);
     loadTexture(grassTexture, "c:/users/ethan/Documents/grass.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(waterTexture, "c:/users/ethan/Documents/water.png", GL_LINEAR, GL_RGBA);
 
 
     //  ######################### Defining shaders for the program ############################## //
@@ -276,6 +280,8 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, bedrockTexture);
     glActiveTexture(GL_TEXTURE0 + GRASS);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
+    glActiveTexture(GL_TEXTURE0 + WATER);
+    glBindTexture(GL_TEXTURE_2D, waterTexture);
 
     int i = 0;
     
@@ -548,7 +554,11 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
 void updateTerain(int startPosx, int startPosz) {
     for (int i = startPosx; i < startPosx + 20; i++) {
         for (int j = startPosz; j < startPosz + 20; j++) {
-            placeCube(glm::vec3(i, perlin((float)i * 0.1f, (float)j * 0.1f), j), cubePositions, BEDROCK);
+            float h = perlin((float)i * 0.15f, (float)j * 0.15f);
+                if (h > waterLevel)
+                    placeCube(glm::vec3(i, h, j), cubePositions, BEDROCK);
+                else
+                    placeCube(glm::vec3(i, waterLevel, j), cubePositions, WATER);
         }
     }
 }
