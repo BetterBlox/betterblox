@@ -1,5 +1,12 @@
 # betterblox
 
+# Dependencies
+- GLAD - links the OpenGL functions
+- GLFW - Creates the window
+- GLM - does the matrix algebra
+- irrKlang - for the sounds
+
+
 Betterblox is a Minecraft mockup implemented in c++. It currently supports placing blocks in the scene and auto spawning the world based on a perlin noise algorithm. 
 
 ## Block storage. 
