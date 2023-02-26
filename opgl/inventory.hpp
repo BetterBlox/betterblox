@@ -3,7 +3,7 @@
 #include "Block.hpp"
 #include <map>
 
-const enum {
+enum {
     DIMOND_ORE,
     CONTAINER,
     HAPPY_FACE,
