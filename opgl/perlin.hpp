@@ -4,6 +4,7 @@
 
 // Got this from wikipedia: 
 #include <math.h>
+#include <ctime>
 
 /* Function to linearly interpolate between a0 and a1
  * Weight w should be in the range [0.0, 1.0]
@@ -36,7 +37,7 @@ vector2 randomGradient(int ix, int iy) {
     a *= 3284157443; b ^= a << s | a >> w - s;
     b *= 1911520717; a ^= b << s | b >> w - s;
     a *= 2048419325;
-    srand(static_cast <unsigned> (time(0)));
+    srand(static_cast <unsigned> (std::time(0)));
     float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
     vector2 v;
     v.x = cos(random); v.y = sin(random);
