@@ -239,20 +239,20 @@ int main() {
 
     unsigned int containerTexture, dimondOreTexture, awesomeFaceTexture, bedrockTexture, grassTexture, waterTexture;
 
-    loadTexture(containerTexture, "c:/users/ethan/Documents/container.jpg", GL_LINEAR, GL_RGB);
-    loadTexture(dimondOreTexture, "c:/users/ethan/Documents/dimonds.png", GL_LINEAR, GL_RGBA);
-    loadTexture(awesomeFaceTexture, "c:/users/ethan/Documents/awesomeface.png", GL_LINEAR, GL_RGBA);
-    loadTexture(bedrockTexture, "c:/users/ethan/Documents/bedrock.png", GL_LINEAR, GL_RGB);
-    loadTexture(grassTexture, "c:/users/ethan/Documents/grass.jpg", GL_LINEAR, GL_RGB);
-    loadTexture(waterTexture, "c:/users/ethan/Documents/water.png", GL_LINEAR, GL_RGBA);
+    loadTexture(containerTexture, "assets/textures/container.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(dimondOreTexture, "assets/textures/diamonds.png", GL_LINEAR, GL_RGBA);
+    loadTexture(awesomeFaceTexture, "assets/textures/awesomeface.png", GL_LINEAR, GL_RGBA);
+    loadTexture(bedrockTexture, "assets/textures/bedrock.png", GL_LINEAR, GL_RGB);
+    loadTexture(grassTexture, "assets/grass.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(waterTexture, "assets/water.png", GL_LINEAR, GL_RGBA);
 
 
     //  ######################### Defining shaders for the program ############################## //
 
-    Shader shader("c:/users/ethan/Documents/vertexShader1.glsl", "c:/users/ethan/Documents/fragmentShader1.glsl");
-    Shader dotShader("c:/users/ethan/Documents/vertForPointer.glsl", "c:/users/ethan/Documents/fragForPointer.glsl");
-    Shader blockShader("c:/users/ethan/Documents/vertexShader1.glsl", "c:/users/ethan/Documents/shaders/blockShader.glsl");
-    Shader inventoryShader("c:/users/ethan/Documents/shaders/vertForInventoryMenu.glsl", "c:/users/ethan/Documents/shaders/fragForInventoryMenu.glsl");
+    Shader shader("assets/shaders/vertexShader1.glsl", "assets/shaders/fragmentShader1.glsl");
+    Shader dotShader("assets/shaders/vertForPointer.glsl", "assets/shaders/fragForPointer.glsl");
+    Shader blockShader("assets/shaders/vertexShader1.glsl", "assets/shaders/blockShader.glsl");
+    Shader inventoryShader("assets/shaders/vertForInventoryMenu.glsl", "assets/shaders/fragForInventoryMenu.glsl");
 
     int combine = 0;
     float xOffset = 0;
