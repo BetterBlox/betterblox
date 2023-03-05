@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION 3.21)
+if(APPLE)
+    cmake_minimum_required(VERSION 3.21)
+else()
+    cmake_minimum_required(VERSION 3.24)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(VCPKG_ROOT "vcpkg")
