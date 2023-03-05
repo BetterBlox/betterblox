@@ -1,0 +1,57 @@
+
+Repositories
+    Betterblox: github.com/Betterblox/betterblox (Report is here)
+        Client: github.com/Betterblox/client
+
+Time Log
+    ╔═══════════════════════════════════════════════════════════════════════╤═════════════════════╤══════╗
+    ║ Task                                                                  │ Date                │ Time ║
+    ╠═══════════════════════════════════════════════════════════════════════╪═════════════════════╪══════╣
+    ║ Team meeting and setting up repo.                                     │ 02/21/23            │ 1:00 ║
+    ╟───────────────────────────────────────────────────────────────────────┼─────────────────────┼──────╢
+    ║ Researching Tauri and setting up client.                              │ 02/21/23            │ 0:30 ║
+    ╟───────────────────────────────────────────────────────────────────────┼─────────────────────┼──────╢
+    ║ Refactoring project file structure and migrating to new build system. │ 02/28/23 & 03/04/23 │ 6:00 ║
+    ╟───────────────────────────────────────────────────────────────────────┼─────────────────────┼──────╢
+    ║ Flushing out client UI.                                               │ 03/05/23            │ x:XX ║
+    ╚═══════════════════════════════════════════════════════════════════════╧═════════════════════╧══════╝
+
+Rubric
+    ╔════════╤═════════════════════════════════════════════════╗
+    ║ Points │ Category                                        ║
+    ╠════════╪═════════════════════════════════════════════════╣
+    ║ 10     │ Compilation                                     ║
+    ╟────────┼─────────────────────────────────────────────────╢
+    ║ 15     │ Gameplay, Rendering (Frontend)                  ║
+    ╟────────┼─────────────────────────────────────────────────╢
+    ║ 5      │ Physics and other Real World elements (Backend) ║
+    ╟────────┼─────────────────────────────────────────────────╢
+    ║ 10     │ Grader's Discretion                             ║
+    ╠════════╪═════════════════════════════════════════════════╣
+    ║ 40     │ Total                                           ║
+    ╚════════╧═════════════════════════════════════════════════╝
+
+Report
+    I was given the task of creating a client to manage settings and start the game, mainly because adding a GUI to the
+    game would have been quite difficult as everything would need to be rendered to a camera. Since I have been working
+    on a website in Hack4Impact, I chose to create the client using a desktop based framework using Next.js. I found
+    Electron.js and Tauri. I chose to use Tauri over Electron due to it being faster and running on a Rust backend,
+    which should in the future work nicely with the game's backend if we decide to use the Rust-C++ FFI. Creating the
+    project and app itself was pretty straightforward using Tauri's create-tauri-app program. Making the UI was a little
+    challenging considering I did not know what we would be using when creating this, so I instead just created some
+    generic buttons like "play", "download", "settings", etc. They don't have any functionality at the moment as it will
+    be added in after we develop more of the game.
+
+    To test the client, you have to install Rust via the rustup tool, here is a help page from Rust:
+        https://www.rust-lang.org/tools/install
+    After this, you will need to install node.js and the node package manager (npm), to do so follow this help page:
+        https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
+    Once both of these steps are complete, clone the repo, and run the command:
+        npm install
+    Then to start the client:
+        npm run tauri dev
+
+Disclaimer
+    I mostly spent my time setting up our build system as we had multiple libraries that we were using to interact with
+    graphics and audio. This was a slightly intensive process as there were a few setbacks, but as of 03/05/23, I got
+    the build system and project working. This is also why the client may look a little bare.
