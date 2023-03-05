@@ -1,13 +1,17 @@
 # betterblox
+Betterblox is a Minecraft mockup implemented in C++. It currently supports placing blocks in the scene and auto spawning the world based on a Perlin noise algorithm.
 
-# Dependencies
+## Setting Up Dev Environment
+1. Clone the repo and its submodules: `git clone git@github.com:Betterblox/betterblox --recursive`
+2. Build vcpkg package manager, this is OS specific:
+   1. On Windows: `./vcpkg/bootstrap-vcpkg.bat`
+   2. On macOS and Linux: `./vcpkg/bootstrap-vcpkg.sh`
+3. In CLion, right click `CMakeLists.txt` and click `Reload CMake Project`
+
+## Dependencies
 - GLAD - links the OpenGL functions
 - GLFW - Creates the window
 - GLM - does the matrix algebra
-- irrKlang - for the sounds
-
-
-Betterblox is a Minecraft mockup implemented in c++. It currently supports placing blocks in the scene and auto spawning the world based on a perlin noise algorithm. 
 
 ## Block storage. 
 The blocks are added to the scene by inserting them into an unordered map with the key being a unique position (not allowing duplicates) and the value being the block type. 
