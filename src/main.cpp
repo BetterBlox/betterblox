@@ -1,4 +1,3 @@
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -18,7 +17,7 @@
 #include <algorithm>
 #include <vector>
 #include "inventory.hpp"
-#include <irrKlang.h>
+//#include <irrKlang/irrKlang.h>
 #include <random>
 #include "perlin.hpp"
 
@@ -45,7 +44,7 @@ void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
 int placeCube(glm::vec3, std::unordered_set<Block>&, int);
 bool checkDuplicates(glm::vec3, glm::vec3);
 void loadTexture(unsigned int& texture, std::string path, unsigned int type, unsigned int rgbType);
-void updateTerain(int startPosx, int startPosz);
+void updateTerrain(int startPosx, int startPosz);
 
 const unsigned int SCR_WIDTH = 2200;
 const unsigned int SCR_HEIGHT = 1200;
@@ -76,7 +75,7 @@ int main() {
     glfwSetErrorCallback(error_callback);
 
     // Setup the music
-    irrklang::ISoundEngine* soundEngine = irrklang::createIrrKlangDevice();
+    // irrklang::ISoundEngine* soundEngine = irrklang::createIrrKlangDevice();
 
     if (GL_TRUE != glfwInit())
         std::cerr << "Failed to init" << std::endl;
@@ -266,7 +265,7 @@ int main() {
     projection2D = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT);
 
 
-    soundEngine->play2D("c:/users/ethan/Documents/softaudio.mp3");
+//    soundEngine->play2D("c:/users/ethan/Documents/softaudio.mp3");
 
 
     // Texture binding
@@ -289,7 +288,7 @@ int main() {
 
     while (!glfwWindowShouldClose(window))
     {
-        updateTerain((int)camera.getPosition().x, (int)camera.getPosition().z);
+        updateTerrain((int) camera.getPosition().x, (int) camera.getPosition().z);
         
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
@@ -372,7 +371,7 @@ int main() {
         glfwPollEvents();
     }
 
-    soundEngine->drop();
+//    soundEngine->drop();
 
 
     glfwTerminate();
@@ -551,7 +550,7 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
     stbi_image_free(data);
 }
 
-void updateTerain(int startPosx, int startPosz) {
+void updateTerrain(int startPosx, int startPosz) {
     for (int i = startPosx; i < startPosx + 20; i++) {
         for (int j = startPosz; j < startPosz + 20; j++) {
             float h = perlin((float)i * 0.15f, (float)j * 0.15f);
