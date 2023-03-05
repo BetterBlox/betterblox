@@ -1,7 +1,7 @@
 
 Repositories
     Betterblox: github.com/Betterblox/betterblox (Report is here)
-        Client: github.com/Betterblox/client
+        Client: github.com/Betterblox/client (Compilable task)
 
 Time Log
     ╔═══════════════════════════════════════════════════════════════════════╤═════════════════════╤══════╗
@@ -13,7 +13,7 @@ Time Log
     ╟───────────────────────────────────────────────────────────────────────┼─────────────────────┼──────╢
     ║ Refactoring project file structure and migrating to new build system. │ 02/28/23 & 03/04/23 │ 6:00 ║
     ╟───────────────────────────────────────────────────────────────────────┼─────────────────────┼──────╢
-    ║ Flushing out client UI.                                               │ 03/05/23            │ x:XX ║
+    ║ Flushing out client UI.                                               │ 03/05/23            │ 2:00 ║
     ╚═══════════════════════════════════════════════════════════════════════╧═════════════════════╧══════╝
 
 Rubric
@@ -55,3 +55,5 @@ Disclaimer
     I mostly spent my time setting up our build system as we had multiple libraries that we were using to interact with
     graphics and audio. This was a slightly intensive process as there were a few setbacks, but as of 03/05/23, I got
     the build system and project working. This is also why the client may look a little bare.
+
+    The assigned and not assigned tasks are listed under the Betterblox/betterblox repo's issues tab.
