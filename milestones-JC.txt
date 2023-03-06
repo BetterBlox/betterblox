@@ -1,0 +1,24 @@
+deliverable - https://github.com/BetterBlox/betterblox/tree/master/src/Storage
+
++3hrs - A way to store block data into files and a way to read those files and return the blocks within the chunks.
+        This is pretty important so that we can have save files of the minecraft world and so that we don't have to
+        store everything in one data type like we have currently. The difficult part about this is that we need to make
+        the files easily findable so that we aren't reading in a chunk that doesn't need to be read in.
++1hrs - Setting up development environment took a long time because originally we tried setting the environment up through
+        Visual Studio however we realized that macOS does not support C++ on Visual Studio, so we switched over to CLion
+        as our development environment
++1hrs - Team Discussion of the project and assigning tasks to each members
++2hrs - Lab Work Day
+
+40pt - Rubric
+5pts - Compilable
+20pts - working gameplay similar to a basic minecraft game and functionality
+15pts - graders' discretion
+
+Tasked to make a file system to store world data like position of blocks and block identifications. Also made it so that
+we keep world data in files separated by chunk files so that we don't have to read in a large text of data each time we
+read the world's data. Since each world has millions of blocks within a small radius, all this information needs to be
+seperated and organized so that the program takes less time to read the files and the game isn't so slow. These text
+of world data will also be used to render in chunks of the world rather than rendering it in small bits at a time. The
+stuff I made in src/Storage is not compilable with the project yet as I couldn't work on the project itself just until
+recently so for now it is just a temporary file that can be replicated for our use.
