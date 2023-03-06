@@ -4,7 +4,7 @@
 #include <map>
 
 enum {
-    DIMOND_ORE,
+    DIAMOND_ORE,
     CONTAINER,
     HAPPY_FACE,
     BEDROCK, 
@@ -19,7 +19,7 @@ private:
 
 public:
     Inventory(int startnum = 10) {
-        blocks.insert({ DIMOND_ORE, startnum });
+        blocks.insert({DIAMOND_ORE, startnum });
         blocks.insert({ CONTAINER, startnum });
         blocks.insert({ HAPPY_FACE, startnum });
         blocks.insert({ BEDROCK, startnum });

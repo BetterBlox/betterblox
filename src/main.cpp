@@ -246,8 +246,8 @@ int main() {
     loadTexture(dimondOreTexture, "assets/textures/diamonds.png", GL_LINEAR, GL_RGBA);
     loadTexture(awesomeFaceTexture, "assets/textures/awesomeface.png", GL_LINEAR, GL_RGBA);
     loadTexture(bedrockTexture, "assets/textures/bedrock.png", GL_LINEAR, GL_RGB);
-    loadTexture(grassTexture, "assets/grass.jpg", GL_LINEAR, GL_RGB);
-    loadTexture(waterTexture, "assets/water.png", GL_LINEAR, GL_RGBA);
+    loadTexture(grassTexture, "assets/textures/grass.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(waterTexture, "assets/textures/water.png", GL_LINEAR, GL_RGBA);
 
 
     //  ######################### Defining shaders for the program ############################## //
@@ -274,7 +274,7 @@ int main() {
     // Texture binding
     glActiveTexture(GL_TEXTURE0 + CONTAINER);
     glBindTexture(GL_TEXTURE_2D, containerTexture);
-    glActiveTexture(GL_TEXTURE0 + DIMOND_ORE);
+    glActiveTexture(GL_TEXTURE0 + DIAMOND_ORE);
     glBindTexture(GL_TEXTURE_2D, dimondOreTexture);
     glActiveTexture(GL_TEXTURE0 + HAPPY_FACE);
     glBindTexture(GL_TEXTURE_2D, awesomeFaceTexture);
@@ -285,7 +285,6 @@ int main() {
     glActiveTexture(GL_TEXTURE0 + WATER);
     glBindTexture(GL_TEXTURE_2D, waterTexture);
 
-    int i = 0;
     
     
 
@@ -356,7 +355,7 @@ int main() {
         model = glm::translate(model, glm::vec3(-0.8f, -0.8f, 0.0f));
         inventoryShader.use();
         for (int i = 0; i < 4; i++) {
-            inventoryShader.setInt("texturein", (GL_TEXTURE0 + GRASS));
+            inventoryShader.setInt("texturein", (i));
             model = glm::translate(model, glm::vec3(0.6f, 0.0f, 0.0f));
             glBindVertexArray(inventoryVao);
             unsigned int projection2DLoc = glGetUniformLocation(inventoryShader.getId(), "projection");
@@ -390,7 +389,7 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         combine = CONTAINER;
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        combine = DIMOND_ORE;
+        combine = DIAMOND_ORE;
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
         combine = BEDROCK;
     if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
