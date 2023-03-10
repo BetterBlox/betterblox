@@ -66,6 +66,7 @@ std::unordered_set<Block> cubePositions;
 
 // Settings
 float waterLevel = 5;
+bool ShowInventoryMenu = false;
 
 int main() {
     // Opengl treats the 0,0 locations on images to be the bottom. This flips the images so the 0, 0 will be at the top.
@@ -138,6 +139,15 @@ int main() {
          0.2f,  0.2f, 1.0f, 1.0f, // Top Right
         -0.2f, -0.2f, 0.0f, 0.0f // Bottom Left
 
+    };
+
+    float inventoryMenuBackground[] = {
+            -1, 1, 0, 1,
+            -1, -1, 0, 0,
+            1, 1, 1, 1,
+            1, -1, 1, 0,
+            1, 1, 1, 1,
+            -1, -1, 0, 0
     };
 
 
@@ -358,11 +368,12 @@ int main() {
 
         // Draw the inventory here.
         // inventoryShader.use();
-        model = glm::translate(model, glm::vec3(-0.8f, -0.8f, 0.0f));
+        model = glm::translate(model, glm::vec3(-1.8f, -0.8f, 0.0f));
         inventoryShader.use();
-        for (int i = 0; i < 4; i++) {
+        int selection = 0;
+        for (int i = 0; i < inventory.size(); i++) {
             inventoryShader.setInt("texturein", (i));
-            model = glm::translate(model, glm::vec3(0.6f, 0.0f, 0.0f));
+            model = glm::translate(model, glm::vec3(0.55f, 0.0f, 0.0f));
             glBindVertexArray(inventoryVao);
             int projection2DLoc = glGetUniformLocation(inventoryShader.getId(), "projection");
             int model2dLoc = glGetUniformLocation(inventoryShader.getId(), "model");
@@ -370,8 +381,18 @@ int main() {
             glUniformMatrix4fv(projection2DLoc, 1, GL_FALSE, glm::value_ptr(projection));
             glUniformMatrix4fv(model2dLoc, 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(view2dLoc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
-            
+            if (combine == i) {
+                inventoryShader.setInt("combine", 1);
+            }
+            else {
+                inventoryShader.setInt("combine", 0);
+            }
             glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
+        // Draw inventory menu
+        if (ShowInventoryMenu) {
+
         }
         
         // check and call events and swap the buffers
@@ -390,18 +411,20 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
-        combine = HAPPY_FACE;
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        combine = CONTAINER;
-    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        combine = DIAMOND_ORE;
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        ShowInventoryMenu ? ShowInventoryMenu = false : ShowInventoryMenu = true;
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        combine = BEDROCK;
+        combine = HAPPY_FACE;
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        combine = CONTAINER;
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        combine = DIAMOND_ORE;
     if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-        combine = GRASS;
+        combine = BEDROCK;
     if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-        combine = 5;
+        combine = GRASS;
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+        combine = WATER;
     if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
         combine = 9;
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
@@ -563,7 +586,7 @@ void updateTerrain(int startPosx, int startPosz) {
         for (int j = startPosz; j < startPosz + 20; j++) {
             float h = perlin((float)i * 0.15f, (float)j * 0.15f);
                 if (h > waterLevel)
-                    placeCube(glm::vec3(i, h, j), cubePositions, BEDROCK);
+                    placeCube(glm::vec3(i, h, j), cubePositions, GRASS);
                 else
                     placeCube(glm::vec3(i, waterLevel, j), cubePositions, WATER);
         }
