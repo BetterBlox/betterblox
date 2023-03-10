@@ -345,24 +345,30 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        dotShader.use();
-        glBindVertexArray(vaoDot);
-        glDrawArrays(GL_TRIANGLES, 0, 12);
-        // Draw the inventory here.
-        // inventoryShader.use();
+
         model = glm::mat4(1.0f);
         model = glm::scale(model, glm::vec3(((float)((float)SCR_HEIGHT / (float)SCR_WIDTH)), 1.0f, 1.0f));
+
+        dotShader.use();
+        glBindVertexArray(vaoDot);
+        int mLoc = glGetUniformLocation(dotShader.getId(), "model");
+        glUniformMatrix4fv(mLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_TRIANGLES, 0, 12);
+
+
+        // Draw the inventory here.
+        // inventoryShader.use();
         model = glm::translate(model, glm::vec3(-0.8f, -0.8f, 0.0f));
         inventoryShader.use();
         for (int i = 0; i < 4; i++) {
             inventoryShader.setInt("texturein", (i));
             model = glm::translate(model, glm::vec3(0.6f, 0.0f, 0.0f));
             glBindVertexArray(inventoryVao);
-            unsigned int projection2DLoc = glGetUniformLocation(inventoryShader.getId(), "projection");
-            unsigned int model2dLoc = glGetUniformLocation(inventoryShader.getId(), "model");
-            unsigned int view2dLoc = glGetUniformLocation(inventoryShader.getId(), "view");
+            int projection2DLoc = glGetUniformLocation(inventoryShader.getId(), "projection");
+            int model2dLoc = glGetUniformLocation(inventoryShader.getId(), "model");
+            int view2dLoc = glGetUniformLocation(inventoryShader.getId(), "view");
             glUniformMatrix4fv(projection2DLoc, 1, GL_FALSE, glm::value_ptr(projection));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniformMatrix4fv(model2dLoc, 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(view2dLoc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
             
             glDrawArrays(GL_TRIANGLES, 0, 6);
