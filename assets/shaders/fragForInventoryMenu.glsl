@@ -8,5 +8,7 @@ uniform int combine;
 
 void main()
 {
-    FragColor = texture(texturein, TextureCoord) - (vec4(0.2f) * (1 - combine)); // If combine is 1 the shader will show it normally
+    vec2 t = TextureCoord;
+    combine == 1 ? t = vec2(TextureCoord.x + .05f, TextureCoord.y - .05f) : t = TextureCoord;
+    FragColor = texture(texturein, t); // If combine is 1 the shader will show it normally
 }

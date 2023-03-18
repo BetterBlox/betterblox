@@ -115,6 +115,7 @@ int main() {
     // OPENGL stuff
     glEnable(GL_DEPTH_TEST);
 
+
     float dot[] = {
         -0.005f,  0.05f,
         -0.005f, -0.05f,
@@ -575,6 +576,12 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, type);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, type);
 
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, rgbType, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -582,8 +589,8 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
 }
 
 void updateTerrain(int startPosx, int startPosz) {
-    for (int i = startPosx; i < startPosx + 20; i++) {
-        for (int j = startPosz; j < startPosz + 20; j++) {
+    for (int i = startPosx - 20; i < startPosx + 20; i++) {
+        for (int j = startPosz - 20; j < startPosz + 20; j++) {
             float h = perlin((float)i * 0.15f, (float)j * 0.15f);
                 if (h > waterLevel)
                     placeCube(glm::vec3(i, h, j), cubePositions, GRASS);
