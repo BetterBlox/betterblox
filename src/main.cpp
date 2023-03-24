@@ -1,51 +1,57 @@
+/*
+ * main.cpp
+ * BetterBlox
+ * Ethan Naugle, Shashank Bandaru, and Jason Choi
+ */
+
+// Definitions
 #define STB_IMAGE_IMPLEMENTATION
+#define SHADER_HEADER "#version 330 core\n"
+#define SHADER_STR(x) #x
+
+// Dependencies
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+// STL
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+#include <unordered_set>
+#include <cmath>
+#include <random>
+
+// Header Files
 #include "shader.hpp"
 #include "camera.hpp"
 #include "stb_image.h"
-#include <map>
-#include <unordered_set>
-#include <cmath>
 #include "Block.hpp"
-#include <algorithm>
-#include <vector>
 #include "inventory.hpp"
-//#include <irrKlang/irrKlang.h>
-#include <random>
 #include "perlin.hpp"
 
-#define SHADER_HEADER "#version 330 core\n"
-#define SHADER_STR(x) #x
+// Function Prototypes
+void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
+void error_callback(int error, const char *msg);
 
+void processInput(GLFWwindow *window, int &combine, float &xOffset, float &yOffset);
 
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn);
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-    (void)window;
-}
-void error_callback(int error, const char* msg) {
-    std::string s;
-    s = " [" + std::to_string(error) + "] " + msg + '\n';
-    std::cerr << s << std::endl;
-}
-void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset);
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
-    float bot_r, float bot_g, float bot_b, float bot_a);
-int placeCube(glm::vec3, std::unordered_set<Block>&, int);
-bool checkDuplicates(glm::vec3, glm::vec3);
-void loadTexture(unsigned int& texture, std::string path, unsigned int type, unsigned int rgbType);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+
+void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
+                             float bot_a);
+
+int placeCube(glm::vec3, std::unordered_set<Block> &, int);
+
+void loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgbType);
+
 void updateTerrain(int startPosx, int startPosz);
 
+
+/*----------[Don't use global variables]----------*/
 const unsigned int SCR_WIDTH = 2200;
 const unsigned int SCR_HEIGHT = 1200;
 
@@ -54,7 +60,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-// Setting up the player information. 
+// Setting up the player information.
 
 Inventory inventory(10);
 
@@ -67,6 +73,9 @@ std::unordered_set<Block> cubePositions;
 // Settings
 float waterLevel = 5;
 
+/*------------------------------------------------*/
+
+
 int main() {
     // Opengl treats the 0,0 locations on images to be the bottom. This flips the images so the 0, 0 will be at the top.
     stbi_set_flip_vertically_on_load(true);
@@ -74,20 +83,17 @@ int main() {
     // Setting up the window stuff
     glfwSetErrorCallback(error_callback);
 
-    // Setup the music
-    // irrklang::ISoundEngine* soundEngine = irrklang::createIrrKlangDevice();
-
     if (GL_TRUE != glfwInit())
         std::cerr << "Failed to init" << std::endl;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    #if __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
+#if __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Deep", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Deep", NULL, NULL);
     if (window == NULL) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -102,8 +108,7 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return 1;
     }
@@ -115,74 +120,72 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     float dot[] = {
-        -0.005f,  0.05f,
-        -0.005f, -0.05f,
-         0.005f,  0.05f,
-         0.005f, -0.05f,
-         0.005f,  0.05f,
-        -0.005f, -0.05f,
-         0.05f, -0.005f,
-        -0.05f, -0.005f,
-         0.05f,  0.005f,
-        -0.05f,  0.005f,
-         0.05f,  0.005f,
-        -0.05f, -0.005f
-         
+            -0.005f, 0.05f,
+            -0.005f, -0.05f,
+            0.005f, 0.05f,
+            0.005f, -0.05f,
+            0.005f, 0.05f,
+            -0.005f, -0.05f,
+            0.05f, -0.005f,
+            -0.05f, -0.005f,
+            0.05f, 0.005f,
+            -0.05f, 0.005f,
+            0.05f, 0.005f,
+            -0.05f, -0.005f
     };
 
     float inventorySquare[] = {
-        -0.2f,  0.2f, 0.0f, 1.0f, // Top Left
-        -0.2f, -0.2f, 0.0f, 0.0f, // Bottom Left
-         0.2f,  0.2f, 1.0f, 1.0f, // Top Right
-         0.2f, -0.2f, 1.0f, 0.0f, // Bottom Right
-         0.2f,  0.2f, 1.0f, 1.0f, // Top Right
-        -0.2f, -0.2f, 0.0f, 0.0f // Bottom Left
-
+            -0.2f, 0.2f, 0.0f, 1.0f, // Top Left
+            -0.2f, -0.2f, 0.0f, 0.0f, // Bottom Left
+            0.2f, 0.2f, 1.0f, 1.0f, // Top Right
+            0.2f, -0.2f, 1.0f, 0.0f, // Bottom Right
+            0.2f, 0.2f, 1.0f, 1.0f, // Top Right
+            -0.2f, -0.2f, 0.0f, 0.0f // Bottom Left
     };
 
 
     float cube[] = {
--0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
- 0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
- 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
- 0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
--0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
--0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 
--0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
- 0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
- 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
- 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
--0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
--0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 
--0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
--0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
--0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
--0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
--0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
--0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
 
- 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
- 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
- 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
- 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
- 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
- 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
 
--0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
- 0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
- 0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
- 0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
--0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
--0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 
--0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
- 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
- 0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
- 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
--0.5f,  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
--0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f
+            -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f
     };
 
     unsigned int inventoryVbo, inventoryVao;
@@ -193,12 +196,12 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, inventoryVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(inventorySquare), inventorySquare, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    
+
     unsigned int vboDot, vaoDot;
     glGenBuffers(1, &vboDot);
     glGenVertexArrays(1, &vaoDot);
@@ -207,10 +210,9 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, vboDot);
     glBufferData(GL_ARRAY_BUFFER, sizeof(dot), dot, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
-    
-    
+
 
     const unsigned int numTriangles = 1;
     unsigned int VBO[numTriangles], VAO[numTriangles];
@@ -227,49 +229,26 @@ int main() {
 
 
     // Position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
     // color
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     // texture coord
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
 
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("c:/users/ethan/Documents/container.jpg", &width, &height, &nrChannels, 0);
-
+    // TODO: Texture loading should be reworked, we shouldn't need 3 lines of code for each texture
     unsigned int containerTexture, dimondOreTexture, awesomeFaceTexture, bedrockTexture, grassTexture, waterTexture;
 
+    // Texture loading
     loadTexture(containerTexture, "assets/textures/container.jpg", GL_LINEAR, GL_RGB);
     loadTexture(dimondOreTexture, "assets/textures/diamonds.png", GL_LINEAR, GL_RGBA);
     loadTexture(awesomeFaceTexture, "assets/textures/awesomeface.png", GL_LINEAR, GL_RGBA);
     loadTexture(bedrockTexture, "assets/textures/bedrock.png", GL_LINEAR, GL_RGB);
     loadTexture(grassTexture, "assets/textures/grass.jpg", GL_LINEAR, GL_RGB);
     loadTexture(waterTexture, "assets/textures/water.png", GL_LINEAR, GL_RGBA);
-
-
-    //  ######################### Defining shaders for the program ############################## //
-
-    Shader shader("assets/shaders/vertexShader1.glsl", "assets/shaders/fragmentShader1.glsl");
-    Shader dotShader("assets/shaders/vertForPointer.glsl", "assets/shaders/fragForPointer.glsl");
-    Shader blockShader("assets/shaders/vertexShader1.glsl", "assets/shaders/blockShader.glsl");
-    Shader inventoryShader("assets/shaders/vertForInventoryMenu.glsl", "assets/shaders/fragForInventoryMenu.glsl");
-
-    int combine = 0;
-    float xOffset = 0;
-    float yOffset = 0;
-
-    // for text and menu rendering 
-    glm::mat4 view2D = glm::mat4(1.0f);
-
-    glm::mat4 projection2D = glm::mat4(1.0f);
-    projection2D = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT);
-
-
-//    soundEngine->play2D("c:/users/ethan/Documents/softaudio.mp3");
-
 
     // Texture binding
     glActiveTexture(GL_TEXTURE0 + CONTAINER);
@@ -285,13 +264,22 @@ int main() {
     glActiveTexture(GL_TEXTURE0 + WATER);
     glBindTexture(GL_TEXTURE_2D, waterTexture);
 
-    
-    
 
-    while (!glfwWindowShouldClose(window))
-    {
-        updateTerrain((int) camera.getPosition().x, (int) camera.getPosition().z);
-        
+    // Shader loading
+    Shader shader("assets/shaders/vertexShader1.glsl", "assets/shaders/fragmentShader1.glsl");
+    Shader dotShader("assets/shaders/vertForPointer.glsl", "assets/shaders/fragForPointer.glsl");
+    Shader blockShader("assets/shaders/vertexShader1.glsl", "assets/shaders/blockShader.glsl");
+    Shader inventoryShader("assets/shaders/vertForInventoryMenu.glsl", "assets/shaders/fragForInventoryMenu.glsl");
+
+
+    // Game Frame Updates
+    int combine = 0;
+    float xOffset = 0;
+    float yOffset = 0;
+
+    while (!glfwWindowShouldClose(window)) {
+        updateTerrain((int)camera.getPosition().x, (int)camera.getPosition().z);
+
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -302,7 +290,7 @@ int main() {
         glClearColor(0.2f, 0.8f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         mygl_GradientBackground(0.5, 0.8, 0.9, 1.0,
-            0.8, 0.8, 0.9, 1.0);
+                                0.8, 0.8, 0.9, 1.0);
 
 
 
@@ -312,7 +300,8 @@ int main() {
         blockShader.use();
 
         // Creating transformations
-        glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first. That is important for some reason.
+        glm::mat4 model = glm::mat4(
+                1.0f); // make sure to initialize matrix to identity matrix first. That is important for some reason.
         glm::mat4 projection = glm::mat4(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
@@ -334,7 +323,7 @@ int main() {
         model = glm::mat4(1.0f);
         modelLoc = glGetUniformLocation(blockShader.getId(), "model");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-                
+
         std::unordered_set<Block>::iterator itr;
         for (itr = cubePositions.begin(); itr != cubePositions.end(); itr++) {
             model = glm::mat4(1.0f);
@@ -364,24 +353,32 @@ int main() {
             glUniformMatrix4fv(projection2DLoc, 1, GL_FALSE, glm::value_ptr(projection));
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
             glUniformMatrix4fv(view2dLoc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
-            
+
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
-        
+
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-//    soundEngine->drop();
-
-
     glfwTerminate();
-    return 0;
 }
 
-void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset)
-{
+
+// Function Definitions
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+    glViewport(0, 0, width, height);
+    (void)window;
+}
+
+void error_callback(int error, const char *msg) {
+    std::string s;
+    s = " [" + std::to_string(error) + "] " + msg + '\n';
+    std::cerr << s << std::endl;
+}
+
+void processInput(GLFWwindow *window, int &combine, float &xOffset, float &yOffset) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
@@ -423,15 +420,14 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
         // Place a cube at the location based on the camera position. 
         std::cout << "num of cubes if " << cubePositions.size() << std::endl;
     }
-        
+
 }
 
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
-    if (firstMouse)
-    {
+    if (firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
@@ -445,45 +441,42 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 // got this from github: https://gist.github.com/mhalber/0a9b8a78182eb62659fc18d23fe5e94e
-void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
-    float bot_r, float bot_g, float bot_b, float bot_a)
-{
+void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
+                             float bot_a) {
     glDisable(GL_DEPTH_TEST);
 
     static GLuint background_vao = 0;
     static GLuint background_shader = 0;
 
-    if (background_vao == 0)
-    {
+    if (background_vao == 0) {
         glGenVertexArrays(1, &background_vao);
 
-        const char* vs_src = (const char*)SHADER_HEADER SHADER_STR
+        const char *vs_src = (const char *)SHADER_HEADER SHADER_STR
         (
-            out vec2 v_uv;
-        void main()
-        {
-            uint idx = uint(gl_VertexID);
-            gl_Position = vec4(idx & 1U, idx >> 1U, 0.0, 0.5) * 4.0 - 1.0;
-            v_uv = vec2(gl_Position.xy * 0.5 + 0.5);
-        }
+                out vec2 v_uv;
+                void main() {
+                    uint idx = uint(gl_VertexID);
+                    gl_Position = vec4(idx & 1U, idx >> 1U, 0.0, 0.5) * 4.0 - 1.0;
+                    v_uv = vec2(gl_Position.xy * 0.5 + 0.5);
+                }
         );
 
-        const char* fs_src = (const char*)SHADER_HEADER SHADER_STR
+        const char *fs_src = (const char *)SHADER_HEADER SHADER_STR
         (
-            uniform vec4 top_color;
-        uniform vec4 bot_color;
-        in vec2 v_uv;
-        out vec4 frag_color;
+                uniform vec4 top_color;
+                uniform vec4 bot_color;
+                in vec2 v_uv;
+                out vec4 frag_color;
 
-        void main()
-        {
-            frag_color = bot_color * (1 - v_uv.y) + top_color * v_uv.y;
-        }
+                void main() {
+                    frag_color = bot_color * (1 - v_uv.y) + top_color * v_uv.y;
+                }
         );
         GLuint vs_id, fs_id;
         vs_id = glCreateShader(GL_VERTEX_SHADER);
@@ -521,22 +514,17 @@ int placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int bloc
     position.x = (float)round(position.x);
     position.y = (float)round(position.y);
     position.z = (float)round(position.z);
-    
+
     positions.insert(Block(position, blockType));
-    
+
     return 0;
 }
 
-bool checkDuplicates(glm::vec3 i, glm::vec3 j) {
-
-    return i == j;
-}
-
-void loadTexture(unsigned int& texture, std::string path, unsigned int type, unsigned int rgbType = GL_RGB) {
+void loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgbType = GL_RGB) {
 
     glGenTextures(1, &texture);
     int width, height, nrChannels;
-    unsigned char * data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (!data) {
         std::cout << "Failed to load data" << std::endl;
     }
@@ -556,10 +544,10 @@ void updateTerrain(int startPosx, int startPosz) {
     for (int i = startPosx; i < startPosx + 20; i++) {
         for (int j = startPosz; j < startPosz + 20; j++) {
             float h = perlin((float)i * 0.15f, (float)j * 0.15f);
-                if (h > waterLevel)
-                    placeCube(glm::vec3(i, h, j), cubePositions, BEDROCK);
-                else
-                    placeCube(glm::vec3(i, waterLevel, j), cubePositions, WATER);
+            if (h > waterLevel)
+                placeCube(glm::vec3(i, h, j), cubePositions, BEDROCK);
+            else
+                placeCube(glm::vec3(i, waterLevel, j), cubePositions, WATER);
         }
     }
 }

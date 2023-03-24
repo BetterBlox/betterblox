@@ -14,7 +14,7 @@ find_package(glad CONFIG REQUIRED)
 find_package(glm QUIET)
 find_package(GLM QUIET)
 
-add_executable(betterblox src/biome.hpp src/Block.hpp src/camera.hpp src/glad.c src/inventory.hpp src/main.cpp src/perlin.hpp src/PerlinNoise.hpp src/Player.hpp src/shader.hpp src/stb_image.h)
+add_executable(betterblox src/biome.hpp src/Block.hpp src/camera.hpp src/inventory.hpp src/main.cpp src/perlin.hpp src/PerlinNoise.hpp src/Player.hpp src/shader.hpp src/stb_image.h)
 target_link_libraries(betterblox PRIVATE glfw glad::glad glm::glm)
 
 # Copies assets to build dir.
