@@ -35,9 +35,9 @@ private:
     static constexpr unsigned int NUM_TRIANGLES = 1;
 
     Camera camera;
-    float last_x;
-    float last_y;
-    bool first_mouse;
+    float last_x = SCR_WIDTH / 2.0f;
+    float last_y = SCR_HEIGHT / 2.0f;
+    bool first_mouse = true;
     std::unordered_set<Block> cube_positions;
     GLFWwindow *window; // Check BetterBlox::initialize() for initialization
     int combine;
@@ -55,8 +55,8 @@ private:
     Inventory inventory;
 
     // Timing
-    float delta_time;
-    float last_frame;
+    float delta_time = 0.0f;
+    float last_frame = 0.0f;
 
     // Shaders
     // These need to be pointers as they do not have a default constructor.
@@ -66,16 +66,24 @@ private:
     Shader *inventory_shader;
 
     // Settings
-    float water_level;
+    float water_level = 5;
 
     // Function Prototypes
     void initialize();
     void updateFrame();
-    void static frameBufferSizeCallback(GLFWwindow *window, int width, int height);
-    void static errorCallback(int error, const char *msg);
+
+    // These functions need to be static to be able to pass them to member functions.
+    static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
+    static void errorCallback(int error, const char *msg);
+
     void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset);
-    void mouseCallback(GLFWwindow *window, double x_pos_in, double y_pos_in);
-    void scrollCallback(GLFWwindow *window, double x_offset, double y_offset);
+
+    // Static wrapper functions are needed to pass these member functions to GLFW since they access other members.
+    void mouseCallback(double x_pos_in, double y_pos_in);
+    static void mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double y_pos_in);
+    void scrollCallback(double x_offset, double y_offset);
+    static void scrollCallbackStatic(GLFWwindow *window, double x_offset, double y_offset);
+
     void myglGradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
                                  float bot_a);
     int placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int block_type);
@@ -83,26 +91,9 @@ private:
     void updateTerrain(int start_pos_x, int start_pos_z);
 
 public:
-    BetterBlox();
     ~BetterBlox();
     void run();
 };
-
-// This constructor is unnecessary. We can either initialize when declaring variables, or do it here.
-BetterBlox::BetterBlox() {
-    camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
-
-    last_x = SCR_WIDTH / 2.0f;
-    last_y = SCR_HEIGHT / 2.0f;
-    first_mouse = true;
-
-    inventory = Inventory(10);
-
-    delta_time = 0.0f;
-    last_frame = 0.0f;
-
-    water_level = 5;
-}
 
 // This deconstructor can be removed if Shader gets a default constructor.
 BetterBlox::~BetterBlox() {
@@ -123,14 +114,18 @@ void BetterBlox::run() {
 }
 
 void BetterBlox::initialize() {
+    camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    inventory = Inventory(10);
+
     // Opengl treats the 0,0 locations on images to be the bottom. This flips the images so the 0, 0 will be at the top.
     stbi_set_flip_vertically_on_load(true);
 
     // Setting up the window stuff
     glfwSetErrorCallback(errorCallback);
 
-    if (GL_TRUE != glfwInit())
-        std::cerr << "Failed to init" << std::endl;
+    if (GL_TRUE != glfwInit()) {
+        throw std::runtime_error(std::string("Failed to initialize GLFW."));
+    }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -148,8 +143,10 @@ void BetterBlox::initialize() {
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
-    glfwSetCursorPosCallback(window, mouseCallback);
-    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetCursorPosCallback(window, mouseCallbackStatic);
+    glfwSetScrollCallback(window, scrollCallbackStatic);
+
+    glfwSetWindowUserPointer(window, this);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -170,39 +167,39 @@ void BetterBlox::initialize() {
     float dot[] = {
             -0.005f,  0.05f,
             -0.005f, -0.05f,
-            0.005f,  0.05f,
-            0.005f, -0.05f,
-            0.005f,  0.05f,
+             0.005f,  0.05f,
+             0.005f, -0.05f,
+             0.005f,  0.05f,
             -0.005f, -0.05f,
-            0.05f,  -0.005f,
+             0.05f,  -0.005f,
             -0.05f,  -0.005f,
-            0.05f,   0.005f,
+             0.05f,   0.005f,
             -0.05f,   0.005f,
-            0.05f,   0.005f,
+             0.05f,   0.005f,
             -0.05f,  -0.005f
     };
 
-    float inventorySquare[] = {
+    float inventory_square[] = {
             -0.2f,  0.2f, 0.0f, 1.0f, // Top Left
             -0.2f, -0.2f, 0.0f, 0.0f, // Bottom Left
-            0.2f,  0.2f, 1.0f, 1.0f, // Top Right
-            0.2f, -0.2f, 1.0f, 0.0f, // Bottom Right
-            0.2f,  0.2f, 1.0f, 1.0f, // Top Right
+             0.2f,  0.2f, 1.0f, 1.0f, // Top Right
+             0.2f, -0.2f, 1.0f, 0.0f, // Bottom Right
+             0.2f,  0.2f, 1.0f, 1.0f, // Top Right
             -0.2f, -0.2f, 0.0f, 0.0f  // Bottom Left
     };
 
     float cube[] = {
             -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-            0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+             0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+             0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+             0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
             -0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
             -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 
             -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-            0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-            0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+             0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+             0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+             0.5f,  0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
             -0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
             -0.5f, -0.5f, 0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 
@@ -221,16 +218,16 @@ void BetterBlox::initialize() {
             0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
 
             -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+             0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+             0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+             0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
             -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
             -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
 
             -0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            0.5f, 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            0.5f, 0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+             0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+             0.5f, 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+             0.5f, 0.5f,  0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
             -0.5f, 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
             -0.5f, 0.5f, -0.5f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f
     };
@@ -241,7 +238,7 @@ void BetterBlox::initialize() {
 
     glBindVertexArray(inventory_vao);
     glBindBuffer(GL_ARRAY_BUFFER, inventory_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(inventorySquare), inventorySquare, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(inventory_square), inventory_square, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -284,29 +281,29 @@ void BetterBlox::initialize() {
 
 
     // TODO: Texture loading should be reworked, we shouldn't need 3 lines of code for each texture
-    unsigned int containerTexture, diamondOreTexture, awesomeFaceTexture, bedrockTexture, grassTexture, waterTexture;
+    unsigned int container_texture, diamond_ore_texture, awesome_face_texture, bedrock_texture, grass_texture, water_texture;
 
     // Texture loading
-    loadTexture(containerTexture, "assets/textures/container.jpg", GL_LINEAR, GL_RGB);
-    loadTexture(diamondOreTexture, "assets/textures/diamonds.png", GL_LINEAR, GL_RGBA);
-    loadTexture(awesomeFaceTexture, "assets/textures/awesomeface.png", GL_LINEAR, GL_RGBA);
-    loadTexture(bedrockTexture, "assets/textures/bedrock.png", GL_LINEAR, GL_RGB);
-    loadTexture(grassTexture, "assets/textures/grass.jpg", GL_LINEAR, GL_RGB);
-    loadTexture(waterTexture, "assets/textures/water.png", GL_LINEAR, GL_RGBA);
+    loadTexture(container_texture, "assets/textures/container.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(diamond_ore_texture, "assets/textures/diamonds.png", GL_LINEAR, GL_RGBA);
+    loadTexture(awesome_face_texture, "assets/textures/awesomeface.png", GL_LINEAR, GL_RGBA);
+    loadTexture(bedrock_texture, "assets/textures/bedrock.png", GL_LINEAR, GL_RGB);
+    loadTexture(grass_texture, "assets/textures/grass.jpg", GL_LINEAR, GL_RGB);
+    loadTexture(water_texture, "assets/textures/water.png", GL_LINEAR, GL_RGBA);
 
     // Texture binding
     glActiveTexture(GL_TEXTURE0 + CONTAINER);
-    glBindTexture(GL_TEXTURE_2D, containerTexture);
+    glBindTexture(GL_TEXTURE_2D, container_texture);
     glActiveTexture(GL_TEXTURE0 + DIAMOND_ORE);
-    glBindTexture(GL_TEXTURE_2D, diamondOreTexture);
+    glBindTexture(GL_TEXTURE_2D, diamond_ore_texture);
     glActiveTexture(GL_TEXTURE0 + HAPPY_FACE);
-    glBindTexture(GL_TEXTURE_2D, awesomeFaceTexture);
+    glBindTexture(GL_TEXTURE_2D, awesome_face_texture);
     glActiveTexture(GL_TEXTURE0 + BEDROCK);
-    glBindTexture(GL_TEXTURE_2D, bedrockTexture);
+    glBindTexture(GL_TEXTURE_2D, bedrock_texture);
     glActiveTexture(GL_TEXTURE0 + GRASS);
-    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    glBindTexture(GL_TEXTURE_2D, grass_texture);
     glActiveTexture(GL_TEXTURE0 + WATER);
-    glBindTexture(GL_TEXTURE_2D, waterTexture);
+    glBindTexture(GL_TEXTURE_2D, water_texture);
 
 
     // Shader loading
@@ -323,9 +320,9 @@ void BetterBlox::initialize() {
 void BetterBlox::updateFrame() {
     updateTerrain((int)camera.getPosition().x, (int)camera.getPosition().z);
 
-    float currentFrame = static_cast<float>(glfwGetTime());
-    delta_time = currentFrame - last_frame;
-    last_frame = currentFrame;
+    float current_frame = static_cast<float>(glfwGetTime());
+    delta_time = current_frame - last_frame;
+    last_frame = current_frame;
     // input
     processInput(window, combine, x_offset, y_offset);
 
@@ -353,27 +350,27 @@ void BetterBlox::updateFrame() {
     projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
     // retrieve the matrix uniform locations
-    unsigned int viewLoc = glGetUniformLocation(block_shader->getId(), "view");
-    unsigned int projectionLoc = glGetUniformLocation(block_shader->getId(), "projection");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    unsigned int view_loc = glGetUniformLocation(block_shader->getId(), "view");
+    unsigned int projection_loc = glGetUniformLocation(block_shader->getId(), "projection");
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(view));
     // note: Projection matrix rarely changes so it should be set outside of the loop.
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, glm::value_ptr(projection));
 
     glBindVertexArray(VAO[0]);
-    unsigned int modelLoc;
+    unsigned int model_loc;
     block_shader->use();
 
     model = glm::mat4(1.0f);
-    modelLoc = glGetUniformLocation(block_shader->getId(), "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    model_loc = glGetUniformLocation(block_shader->getId(), "model");
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
     std::unordered_set<Block>::iterator itr;
     for (itr = cube_positions.begin(); itr != cube_positions.end(); itr++) {
         model = glm::mat4(1.0f);
         model = glm::translate(model, itr->getPosition());
-        modelLoc = glGetUniformLocation(block_shader->getId(), "model");
+        model_loc = glGetUniformLocation(block_shader->getId(), "model");
         block_shader->setInt("texture2", ((Block)*itr).getBlockType());
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
@@ -390,12 +387,12 @@ void BetterBlox::updateFrame() {
         inventory_shader->setInt("texturein", (i));
         model = glm::translate(model, glm::vec3(0.6f, 0.0f, 0.0f));
         glBindVertexArray(inventory_vao);
-        unsigned int projection2DLoc = glGetUniformLocation(inventory_shader->getId(), "projection");
+        unsigned int projection_2d_loc = glGetUniformLocation(inventory_shader->getId(), "projection");
         unsigned int model2dLoc = glGetUniformLocation(inventory_shader->getId(), "model");
-        unsigned int view2dLoc = glGetUniformLocation(inventory_shader->getId(), "view");
-        glUniformMatrix4fv(projection2DLoc, 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(view2dLoc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
+        unsigned int view_2d_loc = glGetUniformLocation(inventory_shader->getId(), "view");
+        glUniformMatrix4fv(projection_2d_loc, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(view_2d_loc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -460,7 +457,7 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
     }
 }
 
-void BetterBlox::mouseCallback(GLFWwindow *window, double x_pos_in, double y_pos_in) {
+void BetterBlox::mouseCallback(double x_pos_in, double y_pos_in) {
     float x_pos = static_cast<float>(x_pos_in);
     float y_pos = static_cast<float>(y_pos_in);
 
@@ -479,8 +476,22 @@ void BetterBlox::mouseCallback(GLFWwindow *window, double x_pos_in, double y_pos
     camera.ProcessMouseMovement(x_offset, y_offset);
 }
 
-void BetterBlox::scrollCallback(GLFWwindow *window, double x_offset, double y_offset) {
+void BetterBlox::mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double y_pos_in) {
+    BetterBlox* game = static_cast<BetterBlox*>(glfwGetWindowUserPointer(window));
+    if (game != nullptr) {
+        game->mouseCallback(x_pos_in, y_pos_in);
+    }
+}
+
+void BetterBlox::scrollCallback(double x_offset, double y_offset) {
     camera.ProcessMouseScroll(static_cast<float>(y_offset));
+}
+
+void BetterBlox::scrollCallbackStatic(GLFWwindow *window, double x_offset, double y_offset) {
+    BetterBlox* game = static_cast<BetterBlox*>(glfwGetWindowUserPointer(window));
+    if (game != nullptr) {
+        game->scrollCallback(x_offset, y_offset);
+    }
 }
 
 void BetterBlox::myglGradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
@@ -558,8 +569,8 @@ int BetterBlox::placeCube(glm::vec3 position, std::unordered_set<Block> &positio
 
 void BetterBlox::loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgb_type) {
     glGenTextures(1, &texture);
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    int width, height, nr_channels;
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nr_channels, 0);
     if (!data) {
         std::cout << "Failed to load data" << std::endl;
     }
