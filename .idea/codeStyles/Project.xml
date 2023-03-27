@@ -1,6 +1,14 @@
 <component name="ProjectCodeStyleConfiguration">
   <code_scheme name="Project" version="173">
+    <option name="FORMATTER_TAGS_ENABLED" value="true" />
+    <Objective-C>
+      <option name="INDENT_DIRECTIVE_AS_CODE" value="true" />
+    </Objective-C>
     <codeStyleSettings language="ObjectiveC">
+      <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="false" />
+      <option name="BLOCK_COMMENT_AT_FIRST_COLUMN" value="false" />
+      <option name="LINE_COMMENT_ADD_SPACE" value="true" />
+      <option name="BLANK_LINES_AROUND_METHOD_IN_INTERFACE" value="0" />
       <option name="SPACE_AFTER_TYPE_CAST" value="false" />
     </codeStyleSettings>
   </code_scheme>
