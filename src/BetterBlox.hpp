@@ -72,7 +72,7 @@ private:
     void initialize();
     void updateFrame();
 
-    // These functions need to be static to be able to pass them to member functions.
+    // These functions need to be static to be able to pass them to GLFW.
     static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
     static void errorCallback(int error, const char *msg);
 
@@ -104,7 +104,7 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
-    // throw std::runtime_error(std::string("Test error.")); TODO: Exceptions within class do not work for some reason.
+    throw std::runtime_error(std::string("Test error.")); // TODO: Exceptions within class do not work for some reason.
 
     initialize();
     while(!glfwWindowShouldClose(window)) {
@@ -135,7 +135,7 @@ void BetterBlox::initialize() {
     #endif
 
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Deep", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
     if (window == NULL) {
         glfwTerminate();
         throw std::runtime_error(std::string("Failed to create GLFW window."));
@@ -457,6 +457,12 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
     }
 }
 
+/**
+ * @brief Callback function for mouse position and movement.
+ *
+ * @param x_pos_in
+ * @param y_pos_in
+ */
 void BetterBlox::mouseCallback(double x_pos_in, double y_pos_in) {
     float x_pos = static_cast<float>(x_pos_in);
     float y_pos = static_cast<float>(y_pos_in);
@@ -476,6 +482,16 @@ void BetterBlox::mouseCallback(double x_pos_in, double y_pos_in) {
     camera.ProcessMouseMovement(x_offset, y_offset);
 }
 
+/**
+ * @brief Wrapper function for the mouseCallback() function.
+ *
+ * @detailed Since GLFW is a C API, it has no knowledge of classes, thus we cannot pass a non-static member function to GLFW when
+ * setting the cursor callback function. This wrapper function wraps the non-static function and acts as a static function
+ * so we can pass it into GLFW.
+ * @param window
+ * @param x_pos_in
+ * @param y_pos_in
+ */
 void BetterBlox::mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double y_pos_in) {
     BetterBlox* game = static_cast<BetterBlox*>(glfwGetWindowUserPointer(window));
     if (game != nullptr) {
@@ -483,10 +499,26 @@ void BetterBlox::mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double
     }
 }
 
+/**
+ * @brief Callback function for mouse scrolling.
+ *
+ * @param x_offset
+ * @param y_offset
+ */
 void BetterBlox::scrollCallback(double x_offset, double y_offset) {
     camera.ProcessMouseScroll(static_cast<float>(y_offset));
 }
 
+/**
+ * @brief Wrapper function for the scrollCallback() function.
+ *
+ * @detailed Since GLFW is a C API, it has no knowledge of classes, thus we cannot pass a non-static member function to GLFW when
+ * setting the scroll callback function. This wrapper function wraps the non-static function and acts as a static function
+ * so we can pass it into GLFW.
+ * @param window
+ * @param x_pos_in
+ * @param y_pos_in
+ */
 void BetterBlox::scrollCallbackStatic(GLFWwindow *window, double x_offset, double y_offset) {
     BetterBlox* game = static_cast<BetterBlox*>(glfwGetWindowUserPointer(window));
     if (game != nullptr) {
