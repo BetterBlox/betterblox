@@ -17,40 +17,31 @@
 
 //using namespace std;
 
-void chunk::write_file(glm::vec3 position, int block_id, int render) {
+void chunk::write_file(glm::vec3 position, int block_id, int x, int z) {
+    string file = find_file(x, z, false);
     string line;
-    string file = find_file(position.x, position.z);
     fstream ofs(file , ios::app);
-    if(!ofs.is_open()) cerr << "Save file not open! " << file;
-    unordered_set<Block> n = read_file(position.x, position.z, render);
+    if(!ofs.is_open()) cerr << "Save file not open! " << file << endl;
+    unordered_set<Block> n = read_file(file);
     if(n.find(Block(position,block_id)) == n.end()) {
         ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
+        cerr << "t: " << position.x << ' ' << position.z << endl;
+    }else{
+        cerr << "c: " << n.find(Block(position,block_id))->getPosition().x << ' ' << n.find(Block(position,block_id))->getPosition().z << endl;
     }
     ofs.close();
 }
 
-unordered_set<Block> chunk::read_file(int x, int z, int renderDistance) {
-    set<string > chunks;
+unordered_set<Block> chunk::read_file(string file) {
     unordered_set<Block> p;
-    int relativex, relativez;
-    if(x < 0) relativex = ((x - 16)/16);
-    else relativex = (x/16);
-    if(z < 0) relativez = ((z - 16)/16);
-    else relativez = (z/16);
+    vector<string > chunks;
 
-    for(int i = -renderDistance; i <= renderDistance; i++){
-        for(int j = -renderDistance; j <= renderDistance; j++){
-            chunks.insert(find_file((relativex + i) * 15, (relativez + j)* 15));
-        }
-    }
-    for(auto i : chunks){
-        cerr << i << ' ';
-    } cerr << endl;
-    for(auto i : chunks) {
-        ifstream ifs(i);
+//        cerr << file << ' ';
+        ifstream ifs(file);
         glm::vec3 position;
         vector<float> line_data;
-        if (!ifs.is_open()) cerr << "Cannot Read File: " << i << endl;
+        if(!ifs.is_open())
+            cerr << "Cannot Read File: " << file << endl;
         string data, l;
         while (getline(ifs, data)) {
             istringstream iss(data);
@@ -64,18 +55,24 @@ unordered_set<Block> chunk::read_file(int x, int z, int renderDistance) {
             line_data.clear();
         }
         ifs.close();
-    }
     return p;
 }
 
-string chunk::find_file(int x, int z) {
+string chunk::find_file(int x, int z, bool trueFile) {
     string file="Chunk";
     file.append("(");
-    if(x < 0) file.append(to_string((x - 16)/16));
-    else file.append(to_string(x/16));
-    file.append(",");
-    if(z < 0) file.append(to_string((z - 16)/16));
-    else file.append(to_string(z/16));
+    if(!trueFile) {
+        if (x < 0) file.append(to_string((x - 16) / 16));
+        else file.append(to_string(x / 16));
+        file.append(",");
+        if (z < 0) file.append(to_string((z - 16) / 16));
+        else file.append(to_string(z / 16));
+    }
+    else{
+        file.append(to_string(x));
+        file.append(",");
+        file.append(to_string(z));
+    }
     file.append(")");
     file.append(".txt");
     return file;

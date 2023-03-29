@@ -14,9 +14,9 @@ using namespace std;
 
 class chunk {
 public:
-    void write_file(glm::vec3 , int, int);
-    unordered_set<Block> read_file(int, int, int);
-    static string find_file(int , int );
+    void write_file(glm::vec3 , int, int, int);
+    unordered_set<Block> read_file(string);
+    static string find_file(int, int, bool);
     bool check_file(string);
     vector<string> get_chunks(int, int);
 };

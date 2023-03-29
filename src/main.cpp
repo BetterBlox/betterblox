@@ -22,6 +22,7 @@
 #include <random>
 #include "perlin.hpp"
 #include "block.h"
+#include <stack>
 
 #define SHADER_HEADER "#version 330 core\n"
 #define SHADER_STR(x) #x
@@ -43,7 +44,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
     float bot_r, float bot_g, float bot_b, float bot_a);
-int placeCube(glm::vec3, std::unordered_set<Block>&, int);
+void placeCube(glm::vec3, std::unordered_set<Block>&, int);
 bool checkDuplicates(glm::vec3, glm::vec3);
 void loadTexture(unsigned int& texture, std::string path, unsigned int type, unsigned int rgbType);
 void updateTerrain(int startPosx, int startPosz);
@@ -69,6 +70,9 @@ float lastFrame = 0.0f;
 std::unordered_set<Block> cubePositions;
 chunk chunk;
 int renderDistance = 1;
+int buffer  = 1;
+
+std::stack<pair<int, int> > chunk_buffer;
 
 // Settings
 float waterLevel = 5;
@@ -291,25 +295,29 @@ int main() {
     glActiveTexture(GL_TEXTURE0 + WATER);
     glBindTexture(GL_TEXTURE_2D, waterTexture);
 
-    
-    
+
 
     while (!glfwWindowShouldClose(window))
     {
-        //TODO:: update by chunk not camera position
         int relativex, relativez;
         if(camera.getPosition().x < 0) relativex = ((camera.getPosition().x - 16)/16);
         else relativex = (camera.getPosition().x/16);
         if(camera.getPosition().z < 0) relativez = ((camera.getPosition().z - 16)/16);
         else relativez = (camera.getPosition().z/16);
-        int buffer  = 1;
-
         for(int i = -renderDistance - buffer; i <= renderDistance + buffer; i++){
             for(int j = -renderDistance - buffer; j <= renderDistance + buffer; j++){
-                if(!chunk.check_file(chunk.find_file((relativex + i) * 15, (relativez + j)* 15)))
-                    updateChunk((relativex + i) * 16, (relativez + j)* 15);
+                if(!chunk.check_file(chunk.find_file(relativex + i, relativez + j, true))) {
+                    updateChunk(relativex + i, relativez + j);
+                    cerr << "writing file: Chunk(" << relativex + i  << ',' << relativez + j << ").txt" << endl;
+                }
             }
         }
+
+//        if(!chunk_buffer.empty()) {
+//            updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+//            chunk_buffer.pop();
+//        }
+
 
 
         
@@ -357,17 +365,30 @@ int main() {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         //rendering
-        //TODO:: Implement render distance
-        std::unordered_set<Block>::iterator itr;
-        unordered_set<Block> l = chunk.read_file(camera.getPosition().x,camera.getPosition().z, renderDistance);
-        for (itr = l.begin(); itr != l.end(); itr++) {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, itr->getPosition());
-            modelLoc = glGetUniformLocation(blockShader.getId(), "model");
-            blockShader.setInt("texture2", ((Block)*itr).getBlockType());
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+//        int t, y;
+//        if(camera.getPosition().x < 0) t = ((camera.getPosition().x - 16)/16);
+//        else t = (camera.getPosition().x/16);
+//        if(camera.getPosition().z < 0) y = ((camera.getPosition().z - 16)/16);
+//        else y = (camera.getPosition().z/16);
+        vector<unordered_set<Block> > blockRendering;
+        for(int i = -renderDistance; i <= renderDistance; i++){
+            for(int j = -renderDistance; j <= renderDistance; j++) {
+                blockRendering.push_back(chunk.read_file(chunk.find_file(relativex + i, relativez + j, true)));
+            }
         }
+
+        std::unordered_set<Block>::iterator itr;
+        for(auto l : blockRendering) {
+            for (itr = l.begin(); itr != l.end(); itr++) {
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, itr->getPosition());
+                modelLoc = glGetUniformLocation(blockShader.getId(), "model");
+                blockShader.setInt("texture2", ((Block) *itr).getBlockType());
+                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+            }
+        }
+//        cerr << endl;
 
         dotShader.use();
         glBindVertexArray(vaoDot);
@@ -540,13 +561,12 @@ void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
     glEnable(GL_DEPTH_TEST);
 }
 
-int placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int blockType) {
+void placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int blockType) {
     std::unordered_set<Block>::iterator ip;
     position.x = (float )round(position.x);
     position.y = (float )round(position.y);
     position.z = (float )round(position.z);
-    chunk.write_file(position, blockType, renderDistance);
-    return 0;
+    chunk.write_file(position, blockType, position.x, position.z);
 }
 
 bool checkDuplicates(glm::vec3 i, glm::vec3 j) {
@@ -582,35 +602,33 @@ void updateTerrain(int startPosx, int startPosz) {
 }
 void updateChunk(int relativex, int relativez){
     int x, z;
-    if(relativex < 0) x = ((relativex - 16)/16);
-    else x = (relativex/16);
-    if(relativez < 0) z = ((relativez - 16)/16);
-    else z = (relativez/16);
+    x = relativex;
+    z = relativez;
 
     if(x >= 0 && z >=0){    // first quadrant
-        for(int i = x; i < (x + 1) * 16; i++){
-            for(int j = z; j < (z + 1) * 16; j++){
+        for(int i = x * 16; i < (x + 1) * 16; i++){
+            for(int j = z * 16; j < (z + 1) * 16; j++){
                 updateTerrain(i,j);
             }
         }
     }
     else if(x < 0 && z >=0){     // second quadrant
-        for(int i = x; i > x*16; i--){
-            for(int j = z; j < (z + 1) * 16; j++){
+        for(int i = (x + 1) * 16; i >= x * 16; i--){
+            for(int j = z * 16; j < (z + 1) * 16; j++){
                 updateTerrain(i,j);
             }
         }
     }
     else if(x < 0 && z < 0){     // third quadrant
-        for(int i = x; i > x*16; i--){
-            for(int j = z; j > z*16; j--){
+        for(int i = (x + 1) * 16; i >= x * 16; i--){
+            for(int j = (z + 1) * 16; j >= z * 16; j--){
                 updateTerrain(i,j);
             }
         }
     }
     else if(x >= 0 && z < 0){     // fourth quadrant
-        for(int i = x; i < (x + 1) * 16; i++){
-            for(int j = z; j > z*16; j--){
+        for(int i = x * 16; i < (x + 1) * 16; i++){
+            for(int j = (z + 1) * 16; j >= z * 16; j--){
                 updateTerrain(i,j);
             }
         }
