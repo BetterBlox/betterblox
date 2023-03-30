@@ -44,7 +44,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
     float bot_r, float bot_g, float bot_b, float bot_a);
-void placeCube(glm::vec3, std::unordered_set<Block>&, int);
+void placeCube(glm::vec3, int);
 bool checkDuplicates(glm::vec3, glm::vec3);
 void loadTexture(unsigned int& texture, std::string path, unsigned int type, unsigned int rgbType);
 void updateTerrain(int startPosx, int startPosz);
@@ -70,7 +70,7 @@ float lastFrame = 0.0f;
 std::unordered_set<Block> cubePositions;
 chunk chunk;
 int renderDistance = 3;
-int buffer  = 2;
+int buffer  = 1;
 
 std::stack<pair<int, int> > chunk_buffer;
 
@@ -367,11 +367,6 @@ int main() {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         //rendering
-//        int t, y;
-//        if(camera.getPosition().x < 0) t = ((camera.getPosition().x - 16)/16);
-//        else t = (camera.getPosition().x/16);
-//        if(camera.getPosition().z < 0) y = ((camera.getPosition().z - 16)/16);
-//        else y = (camera.getPosition().z/16);
         vector<unordered_set<Block> > blockRendering;
         for(int i = -renderDistance; i <= renderDistance; i++){
             for(int j = -renderDistance; j <= renderDistance; j++) {
@@ -390,7 +385,6 @@ int main() {
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
         }
-//        cerr << endl;
 
         dotShader.use();
         glBindVertexArray(vaoDot);
@@ -466,7 +460,7 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
     if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
-        placeCube(camera.getPosition() + (camera.getFront() * 5.0f), cubePositions, combine);
+        placeCube(camera.getPosition() + (camera.getFront() * 5.0f), combine);
         // Place a cube at the location based on the camera position. 
         std::cout << "num of cubes if " << cubePositions.size() << std::endl;
     }
@@ -563,7 +557,7 @@ void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
     glEnable(GL_DEPTH_TEST);
 }
 
-void placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int blockType) {
+void placeCube(glm::vec3 position, int blockType) {
     std::unordered_set<Block>::iterator ip;
     position.x = (float )round(position.x);
     position.y = (float )round(position.y);
@@ -599,9 +593,9 @@ void updateTerrain(int startPosx, int startPosz) {
 
     float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
     if (h > waterLevel)
-        placeCube(glm::vec3(startPosx, h, startPosz), cubePositions, BEDROCK);
+        placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK);
     else
-        placeCube(glm::vec3(startPosx, waterLevel, startPosz), cubePositions, WATER);
+        placeCube(glm::vec3(startPosx, waterLevel, startPosz), WATER);
 }
 void updateChunk(int relativex, int relativez){
     if(relativex >= 0 && relativez >=0){    // first quadrant

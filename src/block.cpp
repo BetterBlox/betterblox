@@ -23,21 +23,15 @@ void chunk::write_file(glm::vec3 position, int block_id, int x, int z) {
     fstream ofs(file , ios::app);
     if(!ofs.is_open()) cerr << "Save file not open! " << file << endl;
     unordered_set<Block> n = read_file(file);
-    if(n.find(Block(position,block_id)) == n.end()) {
+    if(n.find(Block(position,block_id)) == n.end())
         ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
-//        cerr << "t: " << position.x << ' ' << position.z << endl;
-    }else{
-//        cerr << "c: " << n.find(Block(position,block_id))->getPosition().x << ' ' << n.find(Block(position,block_id))->getPosition().z << endl;
-    }
     ofs.close();
 }
 
 unordered_set<Block> chunk::read_file(string file) {
     unordered_set<Block> p;
     vector<string > chunks;
-
-//        cerr << file << ' ';
-        ifstream ifs(file);
+     ifstream ifs(file);
         glm::vec3 position;
         vector<float> line_data;
         if(!ifs.is_open())
