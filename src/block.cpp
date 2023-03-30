@@ -25,9 +25,9 @@ void chunk::write_file(glm::vec3 position, int block_id, int x, int z) {
     unordered_set<Block> n = read_file(file);
     if(n.find(Block(position,block_id)) == n.end()) {
         ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
-        cerr << "t: " << position.x << ' ' << position.z << endl;
+//        cerr << "t: " << position.x << ' ' << position.z << endl;
     }else{
-        cerr << "c: " << n.find(Block(position,block_id))->getPosition().x << ' ' << n.find(Block(position,block_id))->getPosition().z << endl;
+//        cerr << "c: " << n.find(Block(position,block_id))->getPosition().x << ' ' << n.find(Block(position,block_id))->getPosition().z << endl;
     }
     ofs.close();
 }
@@ -80,4 +80,13 @@ string chunk::find_file(int x, int z, bool trueFile) {
 bool chunk::check_file(string file) {
     ifstream ifs(file);
     return ifs.is_open();
+}
+
+string chunk::get_chunks(int x, int z) {
+    string xz = "";
+    if (x < 0) xz.append(to_string((x - 16) / 16));
+    else xz.append(to_string(x / 16));
+    if (z < 0) xz.append(to_string((z - 16) / 16));
+    else xz.append(to_string(z / 16));
+
 }

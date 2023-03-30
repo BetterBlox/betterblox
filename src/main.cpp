@@ -70,7 +70,7 @@ float lastFrame = 0.0f;
 std::unordered_set<Block> cubePositions;
 chunk chunk;
 int renderDistance = 1;
-int buffer  = 1;
+int buffer  = 0;
 
 std::stack<pair<int, int> > chunk_buffer;
 
@@ -594,6 +594,7 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
 }
 
 void updateTerrain(int startPosx, int startPosz) {
+
     float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
     if (h > waterLevel)
         placeCube(glm::vec3(startPosx, h, startPosz), cubePositions, BEDROCK);
@@ -601,34 +602,33 @@ void updateTerrain(int startPosx, int startPosz) {
         placeCube(glm::vec3(startPosx, waterLevel, startPosz), cubePositions, WATER);
 }
 void updateChunk(int relativex, int relativez){
-    int x, z;
-    x = relativex;
-    z = relativez;
-
-    if(x >= 0 && z >=0){    // first quadrant
-        for(int i = x * 16; i < (x + 1) * 16; i++){
-            for(int j = z * 16; j < (z + 1) * 16; j++){
+    if(relativex >= 0 && relativez >=0){    // first quadrant
+        for(int i = relativex * 16; i < (relativex + 1) * 16; i++){
+            for(int j = relativez * 16; j < (relativez + 1) * 16; j++){
                 updateTerrain(i,j);
             }
         }
     }
-    else if(x < 0 && z >=0){     // second quadrant
-        for(int i = (x + 1) * 16; i >= x * 16; i--){
-            for(int j = z * 16; j < (z + 1) * 16; j++){
+    if(relativex < 0 && relativez >=0){     // second quadrant
+        for(int i = (relativex + 1) * 16; i > relativex * 16; i--){
+            for(int j = relativez * 16; j < (relativez + 1) * 16; j++){
+                if(i==0) continue;
                 updateTerrain(i,j);
             }
         }
     }
-    else if(x < 0 && z < 0){     // third quadrant
-        for(int i = (x + 1) * 16; i >= x * 16; i--){
-            for(int j = (z + 1) * 16; j >= z * 16; j--){
+    if(relativex < 0 && relativez < 0){     // third quadrant
+        for(int i = (relativex + 1) * 16; i > relativex * 16; i--){
+            for(int j = (relativez + 1) * 16; j > relativez * 16; j--){
+                if(i==0 || j ==0) continue;
                 updateTerrain(i,j);
             }
         }
     }
-    else if(x >= 0 && z < 0){     // fourth quadrant
-        for(int i = x * 16; i < (x + 1) * 16; i++){
-            for(int j = (z + 1) * 16; j >= z * 16; j--){
+    if(relativex >= 0 && relativez < 0){     // fourth quadrant
+        for(int i = relativex * 16; i < (relativex + 1) * 16; i++){
+            for(int j = (relativez + 1) * 16; j > relativez * 16; j--){
+                if(j==0)continue;
                 updateTerrain(i,j);
             }
         }

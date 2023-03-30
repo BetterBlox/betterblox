@@ -18,7 +18,7 @@ public:
     unordered_set<Block> read_file(string);
     static string find_file(int, int, bool);
     bool check_file(string);
-    vector<string> get_chunks(int, int);
+    string get_chunks(int, int);
 };
 
 
