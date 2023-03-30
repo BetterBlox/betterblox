@@ -69,8 +69,8 @@ float lastFrame = 0.0f;
 // rendering
 std::unordered_set<Block> cubePositions;
 chunk chunk;
-int renderDistance = 1;
-int buffer  = 0;
+int renderDistance = 3;
+int buffer  = 2;
 
 std::stack<pair<int, int> > chunk_buffer;
 
@@ -299,6 +299,7 @@ int main() {
 
     while (!glfwWindowShouldClose(window))
     {
+        stack<pair<int,int> > chunk_buffer;
         int relativex, relativez;
         if(camera.getPosition().x < 0) relativex = ((camera.getPosition().x - 16)/16);
         else relativex = (camera.getPosition().x/16);
@@ -307,16 +308,17 @@ int main() {
         for(int i = -renderDistance - buffer; i <= renderDistance + buffer; i++){
             for(int j = -renderDistance - buffer; j <= renderDistance + buffer; j++){
                 if(!chunk.check_file(chunk.find_file(relativex + i, relativez + j, true))) {
-                    updateChunk(relativex + i, relativez + j);
+                    chunk_buffer.push(make_pair(relativex + i, relativez + j));
                     cerr << "writing file: Chunk(" << relativex + i  << ',' << relativez + j << ").txt" << endl;
                 }
             }
         }
 
-//        if(!chunk_buffer.empty()) {
-//            updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
-//            chunk_buffer.pop();
-//        }
+        if(!chunk_buffer.empty()) {
+            if(chunk.check_file(chunk.find_file(chunk_buffer.top().first, chunk_buffer.top().second, true)));
+                updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+            chunk_buffer.pop();
+        }
 
 
 
