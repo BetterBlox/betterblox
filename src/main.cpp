@@ -21,7 +21,7 @@
 //#include <irrKlang/irrKlang.h>
 #include <random>
 #include "perlin.hpp"
-#include "block.h"
+#include "ChunkLoader.hpp"
 #include <stack>
 
 #define SHADER_HEADER "#version 330 core\n"
@@ -316,7 +316,7 @@ int main() {
 
         if(!chunk_buffer.empty()) {
             if(chunk.check_file(chunk.find_file(chunk_buffer.top().first, chunk_buffer.top().second, true)));
-                updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+                chunk.updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
             chunk_buffer.pop();
         }
 
@@ -460,7 +460,7 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
     if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
-        placeCube(camera.getPosition() + (camera.getFront() * 5.0f), combine);
+        chunk.placeCube(camera.getPosition() + (camera.getFront() * 5.0f), combine);
         // Place a cube at the location based on the camera position. 
         std::cout << "num of cubes if " << cubePositions.size() << std::endl;
     }
@@ -557,14 +557,6 @@ void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
     glEnable(GL_DEPTH_TEST);
 }
 
-void placeCube(glm::vec3 position, int blockType) {
-    std::unordered_set<Block>::iterator ip;
-    position.x = (float )round(position.x);
-    position.y = (float )round(position.y);
-    position.z = (float )round(position.z);
-    chunk.write_file(position, blockType, position.x, position.z);
-}
-
 bool checkDuplicates(glm::vec3 i, glm::vec3 j) {
     return i == j;
 }
@@ -588,45 +580,3 @@ void loadTexture(unsigned int& texture, std::string path, unsigned int type, uns
 
     stbi_image_free(data);
 }
-
-void updateTerrain(int startPosx, int startPosz) {
-
-    float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
-    if (h > waterLevel)
-        placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK);
-    else
-        placeCube(glm::vec3(startPosx, waterLevel, startPosz), WATER);
-}
-void updateChunk(int relativex, int relativez){
-    if(relativex >= 0 && relativez >=0){    // first quadrant
-        for(int i = relativex * 16; i < (relativex + 1) * 16; i++){
-            for(int j = relativez * 16; j < (relativez + 1) * 16; j++){
-                updateTerrain(i,j);
-            }
-        }
-    }
-    if(relativex < 0 && relativez >=0){     // second quadrant
-        for(int i = (relativex + 1) * 16; i > relativex * 16; i--){
-            for(int j = relativez * 16; j < (relativez + 1) * 16; j++){
-                if(i==0) continue;
-                updateTerrain(i,j);
-            }
-        }
-    }
-    if(relativex < 0 && relativez < 0){     // third quadrant
-        for(int i = (relativex + 1) * 16; i > relativex * 16; i--){
-            for(int j = (relativez + 1) * 16; j > relativez * 16; j--){
-                if(i==0 || j ==0) continue;
-                updateTerrain(i,j);
-            }
-        }
-    }
-    if(relativex >= 0 && relativez < 0){     // fourth quadrant
-        for(int i = relativex * 16; i < (relativex + 1) * 16; i++){
-            for(int j = (relativez + 1) * 16; j > relativez * 16; j--){
-                if(j==0)continue;
-                updateTerrain(i,j);
-            }
-        }
-    }
-};
