@@ -18,6 +18,7 @@
 #include <vector>
 #include "inventory.hpp"
 #include <string>
+#include <experimental/coroutine>
 //#include <irrKlang/irrKlang.h>
 #include <random>
 #include "perlin.hpp"

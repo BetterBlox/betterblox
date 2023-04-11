@@ -118,9 +118,9 @@ public:
     void updateTerrain(int startPosx, int startPosz, fstream &ofs) {
         float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
         if (h > waterLevel)
-            placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK,ofs);
+            placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK);
         else
-            placeCube(glm::vec3(startPosx, waterLevel, startPosz), WATER,ofs);
+            placeCube(glm::vec3(startPosx, waterLevel, startPosz), WATER);
     }
     void updateChunk(int relativex, int relativez) {
         fstream ofs(find_file(relativex, relativez, true), ios::app);
