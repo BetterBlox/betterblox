@@ -34,13 +34,16 @@ vector2 randomGradient(int ix, int iy) {
     const unsigned w = 8 * sizeof(unsigned);
     const unsigned s = w / 2; // rotation width
     unsigned a = ix, b = iy;
-    a *= 3284157443; b ^= a << s | a >> w - s;
-    b *= 1911520717; a ^= b << s | b >> w - s;
+    a *= 3284157443;
+    b ^= a << s | a >> w - s;
+    b *= 1911520717;
+    a ^= b << s | b >> w - s;
     a *= 2048419325;
     srand(static_cast <unsigned> (std::time(0)));
     float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
     vector2 v;
-    v.x = cos(random); v.y = sin(random);
+    v.x = cos(random);
+    v.y = sin(random);
     return v;
 }
 
@@ -82,9 +85,9 @@ float perlin(float x, float y) {
     ix1 = interpolate(n0, n1, sx);
 
     value = interpolate(ix0, ix1, sy);
-    return 10.0f * (0.5f * value + 0.5f); // Will return in range -1 to 1. To make it in range 0 to 1, multiply by 0.5 and add 0.5
+    return 10.0f * (0.5f * value +
+                    0.5f); // Will return in range -1 to 1. To make it in range 0 to 1, multiply by 0.5 and add 0.5
 }
-
 
 
 #endif
