@@ -44,6 +44,9 @@ public:
         }
         return false;
     }
+    unsigned int size() {
+        return blocks.size();
+    }
 };
 
 #endif
