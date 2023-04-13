@@ -6,18 +6,18 @@
 
 class Block {
 private:
-    int blockType;
+    int block_type;
     glm::vec3 position;
 
 public:
-    Block(glm::vec3 position = glm::vec3(1), int blockType = 0) {
-        this->blockType = blockType;
+    Block(glm::vec3 position = glm::vec3(1), int block_type = 0) {
+        this->block_type = block_type;
         this->position = position;
     }
 
     Block(const Block &block) {
         position = block.position;
-        blockType = block.blockType;
+        block_type = block.block_type;
     }
 
     Block operator=(const Block &block) {
@@ -29,12 +29,12 @@ public:
     }
 
     int getBlockType() {
-        return blockType;
+        return block_type;
     }
 
-    bool operator==(const Block &rhs) const {
-        return this->position.x == rhs.position.x && this->position.y == rhs.position.y &&
-               this->position.z == rhs.position.z;
+    bool operator==(const Block &right_hand_side) const {
+        return this->position.x == right_hand_side.position.x && this->position.y == right_hand_side.position.y &&
+               this->position.z == right_hand_side.position.z;
     }
 
     friend class std::hash<Block>;

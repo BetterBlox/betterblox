@@ -19,13 +19,13 @@ private:
     std::map<int, int> blocks;
 
 public:
-    Inventory(int startnum = 10) {
-        blocks.insert({DIAMOND_ORE, startnum});
-        blocks.insert({CONTAINER, startnum});
-        blocks.insert({HAPPY_FACE, startnum});
-        blocks.insert({BEDROCK, startnum});
-        blocks.insert({GRASS, startnum});
-        blocks.insert({WATER, startnum});
+    Inventory(int start_num = 10) {
+        blocks.insert({DIAMOND_ORE, start_num});
+        blocks.insert({CONTAINER, start_num});
+        blocks.insert({HAPPY_FACE, start_num});
+        blocks.insert({BEDROCK, start_num});
+        blocks.insert({GRASS, start_num});
+        blocks.insert({WATER, start_num});
     }
 
     int getBlockCount(int type) {

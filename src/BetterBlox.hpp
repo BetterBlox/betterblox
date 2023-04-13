@@ -104,7 +104,7 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
-    throw std::runtime_error(std::string("Test error.")); // TODO: Exceptions within class do not work for some reason.
+    // throw std::runtime_error(std::string("Test error.")); // TODO: Exceptions within class do not work for some reason.
 
     initialize();
     while(!glfwWindowShouldClose(window)) {
@@ -343,7 +343,7 @@ void BetterBlox::updateFrame() {
     glm::mat4 model = glm::mat4(
             1.0f); // make sure to initialize matrix to identity matrix first. That is important for some reason.
     glm::mat4 projection = glm::mat4(1.0f);
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 view = camera.getViewMatrix();
 
 
     // Set transformations
@@ -392,7 +392,7 @@ void BetterBlox::updateFrame() {
         unsigned int view_2d_loc = glGetUniformLocation(inventory_shader->getId(), "view");
         glUniformMatrix4fv(projection_2d_loc, 1, GL_FALSE, glm::value_ptr(projection));
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(view_2d_loc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
+        glUniformMatrix4fv(view_2d_loc, 1, GL_FALSE, glm::value_ptr(camera.getViewMatrix()));
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -439,17 +439,17 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         y_offset -= 0.01;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, delta_time);
+        camera.processKeyboard(FORWARD, delta_time);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, delta_time);
+        camera.processKeyboard(BACKWARD, delta_time);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, delta_time);
+        camera.processKeyboard(LEFT, delta_time);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, delta_time);
+        camera.processKeyboard(RIGHT, delta_time);
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, delta_time);
+        camera.processKeyboard(UP, delta_time);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, delta_time);
+        camera.processKeyboard(DOWN, delta_time);
     if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
         placeCube(camera.getPosition() + (camera.getFront() * 5.0f), cube_positions, combine);
         // Place a cube at the location based on the camera position.
@@ -479,7 +479,7 @@ void BetterBlox::mouseCallback(double x_pos_in, double y_pos_in) {
     last_x = x_pos;
     last_y = y_pos;
 
-    camera.ProcessMouseMovement(x_offset, y_offset);
+    camera.processMouseMovement(x_offset, y_offset);
 }
 
 /**
@@ -506,7 +506,7 @@ void BetterBlox::mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double
  * @param y_offset
  */
 void BetterBlox::scrollCallback(double x_offset, double y_offset) {
-    camera.ProcessMouseScroll(static_cast<float>(y_offset));
+    camera.processMouseScroll(static_cast<float>(y_offset));
 }
 
 /**
