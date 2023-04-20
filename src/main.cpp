@@ -19,6 +19,7 @@
 #include "inventory.hpp"
 #include <string>
 #include <experimental/coroutine>
+#include <functional>
 //#include <irrKlang/irrKlang.h>
 #include <random>
 #include "perlin.hpp"
@@ -27,7 +28,6 @@
 
 #define SHADER_HEADER "#version 330 core\n"
 #define SHADER_STR(x) #x
-
 
 
 
@@ -40,7 +40,7 @@ void error_callback(int error, const char* msg) {
     s = " [" + std::to_string(error) + "] " + msg + '\n';
     std::cerr << s << std::endl;
 }
-void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset);
+void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset, unordered_set<Block>& BlockR);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mygl_GradientBackground(float top_r, float top_g, float top_b, float top_a,
@@ -54,7 +54,7 @@ void updateChunk(int, int);
 const unsigned int SCR_WIDTH = 2200;
 const unsigned int SCR_HEIGHT = 1200;
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(7.0f, 7.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -69,9 +69,13 @@ float lastFrame = 0.0f;
 
 // rendering
 std::unordered_set<Block> cubePositions;
+//vector<unordered_set<Block> > blockRendering;
+unordered_set<Block> blockRendering;
 chunk chunk;
 int renderDistance = 3;
 int buffer  = 1;
+
+
 
 std::stack<pair<int, int> > chunk_buffer;
 
@@ -309,7 +313,7 @@ int main() {
         for(int i = -renderDistance - buffer; i <= renderDistance + buffer; i++){
             for(int j = -renderDistance - buffer; j <= renderDistance + buffer; j++){
                 if(!chunk.check_file(chunk.find_file(relativex + i, relativez + j, true))) {
-                    chunk_buffer.push(make_pair(relativex + i, relativez + j));
+                    chunk_buffer.emplace(relativex + i, relativez + j);
                     cerr << "writing file: Chunk(" << relativex + i  << ',' << relativez + j << ").txt" << endl;
                 }
             }
@@ -328,7 +332,7 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         // input
-        processInput(window, combine, xOffset, yOffset);
+//        processInput(window, combine, xOffset, yOffset, blockRendering);
 
         // rendering commands here
         glClearColor(0.2f, 0.8f, 0.8f, 1.0f);
@@ -368,15 +372,18 @@ int main() {
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         //rendering
-        vector<unordered_set<Block> > blockRendering;
+        unordered_set<Block> temp;
         for(int i = -renderDistance; i <= renderDistance; i++){
             for(int j = -renderDistance; j <= renderDistance; j++) {
-                blockRendering.push_back(chunk.read_file(chunk.find_file(relativex + i, relativez + j, true)));
+                temp = chunk.read_file(chunk.find_file(relativex + i, relativez + j, true));
+                blockRendering.merge(temp);
+                temp.clear();
             }
         }
 
         std::unordered_set<Block>::iterator itr;
-        for(auto l : blockRendering) {
+        unordered_set<Block> l = blockRendering;
+//        for(auto l : blockRendering) {
             for (itr = l.begin(); itr != l.end(); itr++) {
                 model = glm::mat4(1.0f);
                 model = glm::translate(model, itr->getPosition());
@@ -385,7 +392,9 @@ int main() {
                 glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
                 glDrawArrays(GL_TRIANGLES, 0, 36);
             }
-        }
+//        }
+        processInput(window, combine, xOffset, yOffset, blockRendering);
+        blockRendering.clear();
 
         dotShader.use();
         glBindVertexArray(vaoDot);
@@ -422,7 +431,7 @@ int main() {
     return 0;
 }
 
-void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset)
+void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffset, unordered_set<Block>& blockR)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -460,12 +469,30 @@ void processInput(GLFWwindow* window, int& combine, float& xOffset, float& yOffs
         camera.ProcessKeyboard(UP, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
-    if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
-        chunk.placeCube(camera.getPosition() + (camera.getFront() * 5.0f), combine);
-        // Place a cube at the location based on the camera position. 
-        std::cout << "num of cubes if " << cubePositions.size() << std::endl;
+    if (glfwGetMouseButton(window, 0 == GLFW_PRESS) || glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
+        glm::vec3 position;
+        bool placed = false;
+        for (float distance = 1; distance < 8; distance++) {
+            glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * distance);
+            position.x = (float) std::round(camera_position.x);
+            position.y = (float) std::round(camera_position.y);
+            position.z = (float) std::round(camera_position.z);
+            for (int i = 0; i < 10; i++) {   // Check for a valid block id
+                if (blockRendering.find(Block(position, i)) != blockRendering.end() && !placed) {
+                    glm::vec3 cursor = camera.getPosition() + (camera.getFront() * (distance - 1));
+                    if (glfwGetMouseButton(window, 0 == GLFW_PRESS))
+                        chunk.placeCube(cursor, combine);
+                    if (glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
+                        chunk.delete_block(position, i, chunk.find_file(position.x, position.z, false));
+                        blockRendering.erase(Block(position));
+                    }
+
+                    placed = true;
+                }
+            }
+        }
+
     }
-        
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {

@@ -34,13 +34,41 @@ public:
             ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
         ofs.close();
     }
-    void write_file(glm::vec3 position, int block_id, int x, int z, fstream &ofs) {
-        string file = find_file(x, z, false);
-        string line;
-        if(!ofs.is_open()) cerr << "Save file not open! " << file << endl;
-        unordered_set<Block> n = read_file(file);
-        if(n.find(Block(position,block_id)) == n.end())
-            ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
+    void delete_block(glm::vec3 block, int block_id, const string& file){
+        ifstream iof(file);
+        string temp = "temp.txt";
+        ofstream iofs(temp);
+
+        if(!iof.is_open()){
+            cerr << "db: Cannot Read File: " << file << endl;
+            return;
+        }
+        else
+            cerr << "File Open: " << file << endl;
+        if(!iofs.is_open()){
+            cerr << "db: Cannot Read File: " << temp << endl;
+            return;
+        }
+        else
+            cerr << "File Open: "<< temp << endl;
+        string data;
+        string block_string = "";
+        block_string += to_string((int)round(block.x));
+        block_string.push_back('|');
+        block_string += to_string((int)round(block.y));
+        block_string.push_back('|');
+        block_string += to_string((int)round(block.z));
+        block_string.push_back('|');
+        block_string += to_string(block_id);
+        while(getline(iof, data)) {
+            if (data != block_string)
+                iofs << data << endl;
+        }
+        iof.close();
+        iofs.close();
+        std::remove(file.c_str());
+        std::rename(temp.c_str(), file.c_str());
+
     }
 
     unordered_set<Block> read_file(string file) {
@@ -91,14 +119,6 @@ public:
         return ifs.is_open();
     }
 
-    string get_chunks(int x, int z) {
-        string xz = "";
-        if (x < 0) xz.append(to_string((x - 16) / 16));
-        else xz.append(to_string(x / 16));
-        if (z < 0) xz.append(to_string((z - 16) / 16));
-        else xz.append(to_string(z / 16));
-
-    }
     void placeCube(glm::vec3 position, int blockType) {
         std::unordered_set<Block>::iterator ip;
         position.x = (float )round(position.x);
@@ -107,15 +127,8 @@ public:
 
         write_file(position, blockType, position.x, position.z);
     }
-    void placeCube(glm::vec3 position, int blockType, fstream &ofs) {
-        std::unordered_set<Block>::iterator ip;
-        position.x = (float )round(position.x);
-        position.y = (float )round(position.y);
-        position.z = (float )round(position.z);
-        write_file(position, blockType, position.x, position.z,ofs);
-    }
 
-    void updateTerrain(int startPosx, int startPosz, fstream &ofs) {
+    void updateTerrain(int startPosx, int startPosz) {
         float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
         if (h > waterLevel)
             placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK);
@@ -127,7 +140,7 @@ public:
         if (relativex >= 0 && relativez >= 0) {    // first quadrant
             for (int i = relativex * 16; i < (relativex + 1) * 16; i++) {
                 for (int j = relativez * 16; j < (relativez + 1) * 16; j++) {
-                    updateTerrain(i, j, ofs);
+                    updateTerrain(i, j);
                 }
             }
         }
@@ -135,7 +148,7 @@ public:
             for (int i = (relativex + 1) * 16; i > relativex * 16; i--) {
                 for (int j = relativez * 16; j < (relativez + 1) * 16; j++) {
                     if (i == 0) continue;
-                    updateTerrain(i, j, ofs);
+                    updateTerrain(i, j);
                 }
             }
         }
@@ -143,7 +156,7 @@ public:
             for (int i = (relativex + 1) * 16; i > relativex * 16; i--) {
                 for (int j = (relativez + 1) * 16; j > relativez * 16; j--) {
                     if (i == 0 || j == 0) continue;
-                    updateTerrain(i, j, ofs);
+                    updateTerrain(i, j);
                 }
             }
         }
@@ -151,7 +164,7 @@ public:
             for (int i = relativex * 16; i < (relativex + 1) * 16; i++) {
                 for (int j = (relativez + 1) * 16; j > relativez * 16; j--) {
                     if (j == 0)continue;
-                    updateTerrain(i, j, ofs);
+                    updateTerrain(i, j);
                 }
             }
         }
