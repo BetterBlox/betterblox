@@ -14,11 +14,14 @@
 #include <cmath>
 #include <iostream>
 #include <random>
+#include <stack>
+#include <string>
 #include <unordered_set>
 
 // Header Files
 #include "Block.hpp"
 #include "Camera.hpp"
+#include "ChunkLoader.hpp"
 #include "Inventory.hpp"
 #include "perlin.hpp"
 #include "Shader.hpp"
@@ -35,6 +38,8 @@ private:
     static constexpr unsigned int NUM_TRIANGLES = 1;
 
     Camera camera;
+    ChunkLoader chunk_loader;
+    std::unordered_set<Block> block_rendering;
     float last_x = SCR_WIDTH / 2.0f;
     float last_y = SCR_HEIGHT / 2.0f;
     bool first_mouse = true;
@@ -67,6 +72,8 @@ private:
 
     // Settings
     float water_level = 5;
+    int render_distance = 3;
+    int buffer = 1;
 
     // Function Prototypes
     void initialize();
@@ -76,7 +83,7 @@ private:
     static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
     static void errorCallback(int error, const char *msg);
 
-    void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset);
+    void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::unordered_set<Block>& block_rendering);
 
     // Static wrapper functions are needed to pass these member functions to GLFW since they access other members.
     void mouseCallback(double x_pos_in, double y_pos_in);
@@ -86,9 +93,7 @@ private:
 
     void myglGradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
                                  float bot_a);
-    int placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int block_type);
     void loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgb_type);
-    void updateTerrain(int start_pos_x, int start_pos_z);
 
 public:
     ~BetterBlox();
@@ -318,13 +323,30 @@ void BetterBlox::initialize() {
 }
 
 void BetterBlox::updateFrame() {
-    updateTerrain((int)camera.getPosition().x, (int)camera.getPosition().z);
+    std::stack<std::pair<int,int>> chunk_buffer;
+    int relative_x, relative_z;
+    if(camera.getPosition().x < 0) relative_x = ((camera.getPosition().x - 16)/16);
+    else relative_x = (camera.getPosition().x/16);
+    if(camera.getPosition().z < 0) relative_z = ((camera.getPosition().z - 16)/16);
+    else relative_z = (camera.getPosition().z/16);
+    for(int i = -render_distance - buffer; i <= render_distance + buffer; i++){
+        for(int j = -render_distance - buffer; j <= render_distance + buffer; j++){
+            if(!chunk_loader.checkFile(chunk_loader.findFile(relative_x + i, relative_z + j, true))) {
+                chunk_buffer.emplace(relative_x + i, relative_z + j);
+                std::cerr << "writing file: Chunk(" << relative_x + i  << ',' << relative_z + j << ").txt" << std::endl;
+            }
+        }
+    }
+
+    if (!chunk_buffer.empty()) {
+        if (chunk_loader.checkFile(chunk_loader.findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
+        chunk_loader.updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+        chunk_buffer.pop();
+    }
 
     float current_frame = static_cast<float>(glfwGetTime());
     delta_time = current_frame - last_frame;
     last_frame = current_frame;
-    // input
-    processInput(window, combine, x_offset, y_offset);
 
     // rendering commands here
     glClearColor(0.2f, 0.8f, 0.8f, 1.0f);
@@ -364,15 +386,30 @@ void BetterBlox::updateFrame() {
     model_loc = glGetUniformLocation(block_shader->getId(), "model");
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
+    //rendering
+    std::unordered_set<Block> temp;
+    for(int i = -render_distance; i <= render_distance; i++){
+        for(int j = -render_distance; j <= render_distance; j++) {
+            temp = chunk_loader.readFile(chunk_loader.findFile(relative_x + i, relative_z + j, true));
+            block_rendering.merge(temp);
+            temp.clear();
+        }
+    }
+
     std::unordered_set<Block>::iterator itr;
-    for (itr = cube_positions.begin(); itr != cube_positions.end(); itr++) {
+    std::unordered_set<Block> l = block_rendering;
+//        for(auto l : blockRendering) {
+    for (itr = l.begin(); itr != l.end(); itr++) {
         model = glm::mat4(1.0f);
         model = glm::translate(model, itr->getPosition());
         model_loc = glGetUniformLocation(block_shader->getId(), "model");
-        block_shader->setInt("texture2", ((Block)*itr).getBlockType());
+        block_shader->setInt("texture2", ((Block) *itr).getBlockType());
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+//        }
+    processInput(window, combine, x_offset, y_offset, block_rendering);
+    block_rendering.clear();
 
     dot_shader->use();
     glBindVertexArray(vao_dot);
@@ -413,7 +450,7 @@ void BetterBlox::errorCallback(int error, const char *msg) {
     std::cerr << s << std::endl;
 }
 
-void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset) {
+void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::unordered_set<Block>& block_rendering) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
@@ -450,10 +487,28 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
         camera.processKeyboard(UP, delta_time);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.processKeyboard(DOWN, delta_time);
-    if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
-        placeCube(camera.getPosition() + (camera.getFront() * 5.0f), cube_positions, combine);
-        // Place a cube at the location based on the camera position.
-        std::cout << "num of cubes if " << cube_positions.size() << std::endl;
+    if (glfwGetMouseButton(window, 0 == GLFW_PRESS) || glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
+        glm::vec3 position;
+        bool placed = false;
+        for (float distance = 1; distance < 8; distance++) {
+            glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * distance);
+            position.x = (float)std::round(camera_position.x);
+            position.y = (float)std::round(camera_position.y);
+            position.z = (float)std::round(camera_position.z);
+            for (int i = 0; i < 10; i++) {   // Check for a valid block id
+                if (block_rendering.find(Block(position, i)) != block_rendering.end() && !placed) {
+                    glm::vec3 cursor = camera.getPosition() + (camera.getFront() * (distance - 1));
+                    if (glfwGetMouseButton(window, 0 == GLFW_PRESS))
+                        chunk_loader.placeCube(cursor, combine);
+                    if (glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
+                        chunk_loader.deleteBlock(position, i, chunk_loader.findFile(position.x, position.z, false));
+                        block_rendering.erase(Block(position));
+                    }
+
+                    placed = true;
+                }
+            }
+        }
     }
 }
 
@@ -588,17 +643,6 @@ void BetterBlox::myglGradientBackground(float top_r, float top_g, float top_b, f
     glEnable(GL_DEPTH_TEST);
 }
 
-int BetterBlox::placeCube(glm::vec3 position, std::unordered_set<Block> &positions, int block_type) {
-    std::unordered_set<Block>::iterator ip;
-    position.x = (float)round(position.x);
-    position.y = (float)round(position.y);
-    position.z = (float)round(position.z);
-
-    positions.insert(Block(position, block_type));
-
-    return 0;
-}
-
 void BetterBlox::loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgb_type) {
     glGenTextures(1, &texture);
     int width, height, nr_channels;
@@ -616,16 +660,4 @@ void BetterBlox::loadTexture(unsigned int &texture, std::string path, unsigned i
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(data);
-}
-
-void BetterBlox::updateTerrain(int start_pos_x, int start_pos_z) {
-    for (int i = start_pos_x; i < start_pos_x + 20; i++) {
-        for (int j = start_pos_z; j < start_pos_z + 20; j++) {
-            float h = perlin((float)i * 0.15f, (float)j * 0.15f);
-            if (h > water_level)
-                placeCube(glm::vec3(i, h, j), cube_positions, BEDROCK);
-            else
-                placeCube(glm::vec3(i, water_level, j), cube_positions, WATER);
-        }
-    }
 }
