@@ -1,176 +1,187 @@
-//
-// Created by Jason Choi on 3/31/23.
-//
-
 #ifndef CHUNKLOADER_H
 #define CHUNKLOADER_H
-#include <iostream>
+
+// Dependencies
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
+// STL
 #include <fstream>
+#include <iostream>
+#include <set>
 #include <sstream>
-#include <vector>
 #include <string>
 #include <unordered_set>
-#include <set>
+#include <vector>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
+// Header Files
 #include "Block.hpp"
+#include "Inventory.hpp"
+#include "perlin.hpp"
 
-using namespace std;
-
-class chunk {
+class ChunkLoader {
 private:
-    int waterLevel = 5;
+    int water_level = 5;
 public:
-    void write_file(glm::vec3 position, int block_id, int x, int z) {
-        string file = find_file(x, z, false);
-        string line;
-        fstream ofs(file , ios::app);
-        if(!ofs.is_open()) cerr << "Save file not open! " << file << endl;
-        unordered_set<Block> n = read_file(file);
-        if(n.find(Block(position,block_id)) == n.end())
-            ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << endl;
-        ofs.close();
-    }
-    void delete_block(glm::vec3 block, int block_id, const string& file){
-        ifstream iof(file);
-        string temp = "temp.txt";
-        ofstream iofs(temp);
-
-        if(!iof.is_open()){
-            cerr << "db: Cannot Read File: " << file << endl;
-            return;
-        }
-        else
-            cerr << "File Open: " << file << endl;
-        if(!iofs.is_open()){
-            cerr << "db: Cannot Read File: " << temp << endl;
-            return;
-        }
-        else
-            cerr << "File Open: "<< temp << endl;
-        string data;
-        string block_string = "";
-        block_string += to_string((int)round(block.x));
-        block_string.push_back('|');
-        block_string += to_string((int)round(block.y));
-        block_string.push_back('|');
-        block_string += to_string((int)round(block.z));
-        block_string.push_back('|');
-        block_string += to_string(block_id);
-        while(getline(iof, data)) {
-            if (data != block_string)
-                iofs << data << endl;
-        }
-        iof.close();
-        iofs.close();
-        std::remove(file.c_str());
-        std::rename(temp.c_str(), file.c_str());
-
-    }
-
-    unordered_set<Block> read_file(string file) {
-        unordered_set<Block> p;
-        vector<string > chunks;
-        ifstream ifs(file);
-        glm::vec3 position;
-        vector<float> line_data;
-        if(!ifs.is_open())
-            cerr << "Cannot Read File: " << file << endl;
-        string data, l;
-        while (getline(ifs, data)) {
-            istringstream iss(data);
-            while (getline(iss, l, '|')) {
-                line_data.push_back(stof(l));
-            }
-            position.x = line_data[0];
-            position.y = line_data[1];
-            position.z = line_data[2];
-            p.insert(Block(position, (int) line_data[3]));
-            line_data.clear();
-        }
-        ifs.close();
-        return p;
-    }
-
-    string find_file(int x, int z, bool trueFile) {
-        string file="Chunk";
-        file.append("(");
-        if(!trueFile) {
-            if (x < 0) file.append(to_string((x - 16) / 16));
-            else file.append(to_string(x / 16));
-            file.append(",");
-            if (z < 0) file.append(to_string((z - 16) / 16));
-            else file.append(to_string(z / 16));
-        }
-        else{
-            file.append(to_string(x));
-            file.append(",");
-            file.append(to_string(z));
-        }
-        file.append(")");
-        file.append(".txt");
-        return file;
-    }
-    bool check_file(string file) {
-        ifstream ifs(file);
-        return ifs.is_open();
-    }
-
-    void placeCube(glm::vec3 position, int blockType) {
-        std::unordered_set<Block>::iterator ip;
-        position.x = (float )round(position.x);
-        position.y = (float )round(position.y);
-        position.z = (float )round(position.z);
-
-        write_file(position, blockType, position.x, position.z);
-    }
-
-    void updateTerrain(int startPosx, int startPosz) {
-        float h = perlin((float)startPosx * 0.15f, (float)startPosz* 0.15f);
-        if (h > waterLevel)
-            placeCube(glm::vec3(startPosx, h, startPosz), BEDROCK);
-        else
-            placeCube(glm::vec3(startPosx, waterLevel, startPosz), WATER);
-    }
-    void updateChunk(int relativex, int relativez) {
-        fstream ofs(find_file(relativex, relativez, true), ios::app);
-        if (relativex >= 0 && relativez >= 0) {    // first quadrant
-            for (int i = relativex * 16; i < (relativex + 1) * 16; i++) {
-                for (int j = relativez * 16; j < (relativez + 1) * 16; j++) {
-                    updateTerrain(i, j);
-                }
-            }
-        }
-        else if (relativex < 0 && relativez >= 0) {     // second quadrant
-            for (int i = (relativex + 1) * 16; i > relativex * 16; i--) {
-                for (int j = relativez * 16; j < (relativez + 1) * 16; j++) {
-                    if (i == 0) continue;
-                    updateTerrain(i, j);
-                }
-            }
-        }
-        else if (relativex < 0 && relativez < 0) {     // third quadrant
-            for (int i = (relativex + 1) * 16; i > relativex * 16; i--) {
-                for (int j = (relativez + 1) * 16; j > relativez * 16; j--) {
-                    if (i == 0 || j == 0) continue;
-                    updateTerrain(i, j);
-                }
-            }
-        }
-        else if (relativex >= 0 && relativez < 0) {     // fourth quadrant
-            for (int i = relativex * 16; i < (relativex + 1) * 16; i++) {
-                for (int j = (relativez + 1) * 16; j > relativez * 16; j--) {
-                    if (j == 0)continue;
-                    updateTerrain(i, j);
-                }
-            }
-        }
-        ofs.close();
-    }
+    void writeFile(glm::vec3 position, int block_id, int x, int z);
+    void deleteBlock(glm::vec3 block, int block_id, const std::string& file);
+    std::unordered_set<Block> readFile(std::string file);
+    std::string findFile(int x, int z, bool true_file);
+    bool checkFile(std::string file);
+    void placeCube(glm::vec3 position, int block_type);
+    void updateTerrain(int start_pos_x, int start_pos_z);
+    void updateChunk(int relative_x, int relative_z);
 };
 
+void ChunkLoader::writeFile(glm::vec3 position, int block_id, int x, int z) {
+    std::string file = findFile(x, z, false);
+    std::string line;
+    std::fstream ofs(file , std::ios::app);
+    if(!ofs.is_open()) std::cerr << "Save file not open! " << file << std::endl;
+    std::unordered_set<Block> n = readFile(file);
+    if(n.find(Block(position,block_id)) == n.end())
+        ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << std::endl;
+    ofs.close();
+}
 
-#endif //CHUNKLOADER_H
+void ChunkLoader::deleteBlock(glm::vec3 block, int block_id, const std::string& file) {
+    std::ifstream iof(file);
+    std::string temp = "temp.txt";
+    std::ofstream iofs(temp);
+
+    if (!iof.is_open()) {
+        std::cerr << "db: Cannot Read File: " << file << std::endl;
+        return;
+    }
+    else
+        std::cerr << "File Open: " << file << std::endl;
+    if (!iofs.is_open()) {
+        std::cerr << "db: Cannot Read File: " << temp << std::endl;
+        return;
+    }
+    else {
+        std::cerr << "File Open: "<< temp << std::endl;
+    }
+    std::string data;
+    std::string block_string = "";
+    block_string += std::to_string((int)round(block.x));
+    block_string.push_back('|');
+    block_string += std::to_string((int)round(block.y));
+    block_string.push_back('|');
+    block_string += std::to_string((int)round(block.z));
+    block_string.push_back('|');
+    block_string += std::to_string(block_id);
+    while(getline(iof, data)) {
+        if (data != block_string)
+            iofs << data << std::endl;
+    }
+    iof.close();
+    iofs.close();
+    std::remove(file.c_str());
+    std::rename(temp.c_str(), file.c_str());
+}
+
+std::unordered_set<Block> ChunkLoader::readFile(std::string file) {
+    std::unordered_set<Block> p;
+    std::vector<std::string > chunks;
+    std::ifstream ifs(file);
+    glm::vec3 position;
+    std::vector<float> line_data;
+    if(!ifs.is_open())
+        std::cerr << "Cannot Read File: " << file << std::endl;
+    std::string data, l;
+    while (getline(ifs, data)) {
+        std::istringstream iss(data);
+        while (getline(iss, l, '|')) {
+            line_data.push_back(stof(l));
+        }
+        position.x = line_data[0];
+        position.y = line_data[1];
+        position.z = line_data[2];
+        p.insert(Block(position, (int) line_data[3]));
+        line_data.clear();
+    }
+    ifs.close();
+    return p;
+}
+
+std::string ChunkLoader::findFile(int x, int z, bool true_file) {
+    std::string file="Chunk";
+    file.append("(");
+    if(!true_file) {
+        if (x < 0) file.append(std::to_string((x - 16) / 16));
+        else file.append(std::to_string(x / 16));
+        file.append(",");
+        if (z < 0) file.append(std::to_string((z - 16) / 16));
+        else file.append(std::to_string(z / 16));
+    }
+    else{
+        file.append(std::to_string(x));
+        file.append(",");
+        file.append(std::to_string(z));
+    }
+    file.append(")");
+    file.append(".txt");
+    return file;
+}
+
+bool ChunkLoader::checkFile(std::string file) {
+    std::ifstream ifs(file);
+    return ifs.is_open();
+}
+
+void ChunkLoader::placeCube(glm::vec3 position, int block_type) {
+    std::unordered_set<Block>::iterator ip;
+    position.x = (float )round(position.x);
+    position.y = (float )round(position.y);
+    position.z = (float )round(position.z);
+
+    writeFile(position, block_type, position.x, position.z);
+}
+
+void ChunkLoader::updateTerrain(int start_pos_x, int start_pos_z) {
+    float h = perlin((float)start_pos_x * 0.15f, (float)start_pos_z * 0.15f);
+    if (h > water_level)
+        placeCube(glm::vec3(start_pos_x, h, start_pos_z), BEDROCK);
+    else
+        placeCube(glm::vec3(start_pos_x, water_level, start_pos_z), WATER);
+}
+
+void ChunkLoader::updateChunk(int relative_x, int relative_z) {
+    std::fstream ofs(findFile(relative_x, relative_z, true), std::ios::app);
+    if (relative_x >= 0 && relative_z >= 0) {    // first quadrant
+        for (int i = relative_x * 16; i < (relative_x + 1) * 16; i++) {
+            for (int j = relative_z * 16; j < (relative_z + 1) * 16; j++) {
+                updateTerrain(i, j);
+            }
+        }
+    }
+    else if (relative_x < 0 && relative_z >= 0) {     // second quadrant
+        for (int i = (relative_x + 1) * 16; i > relative_x * 16; i--) {
+            for (int j = relative_z * 16; j < (relative_z + 1) * 16; j++) {
+                if (i == 0) continue;
+                updateTerrain(i, j);
+            }
+        }
+    }
+    else if (relative_x < 0 && relative_z < 0) {     // third quadrant
+        for (int i = (relative_x + 1) * 16; i > relative_x * 16; i--) {
+            for (int j = (relative_z + 1) * 16; j > relative_z * 16; j--) {
+                if (i == 0 || j == 0) continue;
+                updateTerrain(i, j);
+            }
+        }
+    }
+    else if (relative_x >= 0 && relative_z < 0) {     // fourth quadrant
+        for (int i = relative_x * 16; i < (relative_x + 1) * 16; i++) {
+            for (int j = (relative_z + 1) * 16; j > relative_z * 16; j--) {
+                if (j == 0)continue;
+                updateTerrain(i, j);
+            }
+        }
+    }
+    ofs.close();
+}
+
+#endif
