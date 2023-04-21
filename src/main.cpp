@@ -6,7 +6,8 @@ int main() {
         game.run();
     }
     catch (std::runtime_error &err) {
-        std::cerr << "Error: " << err.what() << std::endl;
+        std::cerr << "==> Exception Thrown <==" << std::endl;
+        std::cerr << "Message:  " << err.what() << std::endl;
         std::exit(-1);
     }
 }

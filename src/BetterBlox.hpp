@@ -65,10 +65,11 @@ private:
 
     // Shaders
     // These need to be pointers as they do not have a default constructor.
-    Shader *shader;
-    Shader *dot_shader;
-    Shader *block_shader;
-    Shader *inventory_shader;
+    // Pointers MUST be set to nullptr, else exceptions will not work!
+    Shader *shader = nullptr;
+    Shader *dot_shader = nullptr;
+    Shader *block_shader = nullptr;
+    Shader *inventory_shader = nullptr;
 
     // Settings
     float water_level = 5;
@@ -110,8 +111,6 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
-    // throw std::runtime_error(std::string("Test error.")); // TODO: Exceptions within class do not work for some reason.
-
     initialize();
     while(!glfwWindowShouldClose(window)) {
         updateFrame();
