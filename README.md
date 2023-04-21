@@ -37,5 +37,5 @@ I would like the text to be rendered from scratch using binary representations f
 This can be rendered as a 2D accelerated graphic. 
 
 ## Biomes
-We need to implement a class that stores blocks and objects that belong in a specific biome. This will determine the ratio of blocks that need to go in a particular biome. For example you do not want as many dirt blocks on the surface as you want grass blocks but it still looks nice with a couple. 
+We need to implement a class that stores blocks and objects that belong in a specific Biome. This will determine the ratio of blocks that need to go in a particular Biome. For example you do not want as many dirt blocks on the surface as you want grass blocks but it still looks nice with a couple. 
 
