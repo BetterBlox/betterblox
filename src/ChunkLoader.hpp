@@ -141,9 +141,9 @@ void ChunkLoader::placeCube(glm::vec3 position, int block_type) {
 }
 
 void ChunkLoader::updateTerrain(int start_pos_x, int start_pos_z) {
-    float h = perlin((float)start_pos_x * 0.15f, (float)start_pos_z * 0.15f);
+    float h = perlin((float)(start_pos_x - 20) * 0.15f, (float)(start_pos_z - 20) * 0.15f);
     if (h > water_level)
-        placeCube(glm::vec3(start_pos_x, h, start_pos_z), BEDROCK);
+        placeCube(glm::vec3(start_pos_x, h, start_pos_z), GRASS);
     else
         placeCube(glm::vec3(start_pos_x, water_level, start_pos_z), WATER);
 }

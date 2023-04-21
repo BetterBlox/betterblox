@@ -74,6 +74,7 @@ private:
     float water_level = 5;
     int render_distance = 3;
     int buffer = 1;
+    bool show_inventory_menu = false;
 
     // Function Prototypes
     void initialize();
@@ -191,6 +192,15 @@ void BetterBlox::initialize() {
              0.2f, -0.2f, 1.0f, 0.0f, // Bottom Right
              0.2f,  0.2f, 1.0f, 1.0f, // Top Right
             -0.2f, -0.2f, 0.0f, 0.0f  // Bottom Left
+    };
+
+    float inventoryMenuBackground[] = {
+            -1, 1, 0, 1,
+            -1, -1, 0, 0,
+            1, 1, 1, 1,
+            1, -1, 1, 0,
+            1, 1, 1, 1,
+            -1, -1, 0, 0
     };
 
     float cube[] = {
@@ -411,27 +421,41 @@ void BetterBlox::updateFrame() {
     processInput(window, combine, x_offset, y_offset, block_rendering);
     block_rendering.clear();
 
+    model = glm::mat4(1.0f);
+    model = glm::scale(model, glm::vec3(((float)((float)SCR_HEIGHT / (float)SCR_WIDTH)), 1.0f, 1.0f));
+
     dot_shader->use();
     glBindVertexArray(vao_dot);
+    int m_loc = glGetUniformLocation(dot_shader->getId(), "model");
+    glUniformMatrix4fv(m_loc, 1, GL_FALSE, glm::value_ptr(model));
     glDrawArrays(GL_TRIANGLES, 0, 12);
     // Draw the inventory here.
     // inventoryShader.use();
-    model = glm::mat4(1.0f);
-    model = glm::scale(model, glm::vec3(((float)((float)SCR_HEIGHT / (float)SCR_WIDTH)), 1.0f, 1.0f));
-    model = glm::translate(model, glm::vec3(-0.8f, -0.8f, 0.0f));
+    model = glm::translate(model, glm::vec3(-1.8f, -0.8f, 0.0f));
     inventory_shader->use();
-    for (int i = 0; i < 4; i++) {
+    int selection = 0;
+    for (int i = 0; i < inventory.size(); i++) {
         inventory_shader->setInt("texturein", (i));
-        model = glm::translate(model, glm::vec3(0.6f, 0.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.55f, 0.0f, 0.0f));
         glBindVertexArray(inventory_vao);
-        unsigned int projection_2d_loc = glGetUniformLocation(inventory_shader->getId(), "projection");
-        unsigned int model2dLoc = glGetUniformLocation(inventory_shader->getId(), "model");
-        unsigned int view_2d_loc = glGetUniformLocation(inventory_shader->getId(), "view");
+        int projection_2d_loc = glGetUniformLocation(inventory_shader->getId(), "projection");
+        int model_2d_loc = glGetUniformLocation(inventory_shader->getId(), "model");
+        int view_2d_loc = glGetUniformLocation(inventory_shader->getId(), "view");
         glUniformMatrix4fv(projection_2d_loc, 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(model_2d_loc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(view_2d_loc, 1, GL_FALSE, glm::value_ptr(camera.getViewMatrix()));
-
+        if (combine == i) {
+            inventory_shader->setInt("combine", 1);
+        }
+        else {
+            inventory_shader->setInt("combine", 0);
+        }
         glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    // draw inventory menu
+    if (show_inventory_menu) {
+
     }
 
     // check and call events and swap the buffers
@@ -453,18 +477,20 @@ void BetterBlox::errorCallback(int error, const char *msg) {
 void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::unordered_set<Block>& block_rendering) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
-        combine = HAPPY_FACE;
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        combine = CONTAINER;
-    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        combine = DIAMOND_ORE;
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        show_inventory_menu ? show_inventory_menu = false : show_inventory_menu = true;
     if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        combine = BEDROCK;
+        combine = HAPPY_FACE;
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        combine = CONTAINER;
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        combine = DIAMOND_ORE;
     if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-        combine = GRASS;
+        combine = BEDROCK;
     if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-        combine = 5;
+        combine = GRASS;
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+        combine = WATER;
     if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS)
         combine = 9;
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
@@ -655,6 +681,12 @@ void BetterBlox::loadTexture(unsigned int &texture, std::string path, unsigned i
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, type);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, type);
+
+    float border_color[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, rgb_type, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
