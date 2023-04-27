@@ -17,6 +17,8 @@
 #include <stack>
 #include <string>
 #include <unordered_set>
+#include <thread>
+#include <mutex>
 
 // Header Files
 #include "Block.hpp"
@@ -38,7 +40,6 @@ private:
     static constexpr unsigned int NUM_TRIANGLES = 1;
 
     Camera camera;
-    ChunkLoader chunk_loader;
     std::unordered_set<Block> block_rendering;
     float last_x = SCR_WIDTH / 2.0f;
     float last_y = SCR_HEIGHT / 2.0f;
@@ -70,6 +71,10 @@ private:
     Shader *dot_shader = nullptr;
     Shader *block_shader = nullptr;
     Shader *inventory_shader = nullptr;
+
+    // MultiThreading
+    std::thread chunk_thread;
+    std::thread read_thread;
 
     // Settings
     float water_level = 5;
@@ -115,6 +120,9 @@ void BetterBlox::run() {
     while(!glfwWindowShouldClose(window)) {
         updateFrame();
     }
+
+    chunk_thread.join();
+    read_thread.join();
     glfwTerminate(); // We could probably have a terminate function.
 }
 
@@ -140,7 +148,7 @@ void BetterBlox::initialize() {
     #endif
 
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL) {
         glfwTerminate();
         throw std::runtime_error(std::string("Failed to create GLFW window."));
@@ -340,7 +348,7 @@ void BetterBlox::updateFrame() {
     else relative_z = (camera.getPosition().z/16);
     for(int i = -render_distance - buffer; i <= render_distance + buffer; i++){
         for(int j = -render_distance - buffer; j <= render_distance + buffer; j++){
-            if(!chunk_loader.checkFile(chunk_loader.findFile(relative_x + i, relative_z + j, true))) {
+            if(!ChunkLoader::checkFile(ChunkLoader::findFile(relative_x + i, relative_z + j, true))) {
                 chunk_buffer.emplace(relative_x + i, relative_z + j);
                 std::cerr << "writing file: Chunk(" << relative_x + i  << ',' << relative_z + j << ").txt" << std::endl;
             }
@@ -348,8 +356,9 @@ void BetterBlox::updateFrame() {
     }
 
     if (!chunk_buffer.empty()) {
-        if (chunk_loader.checkFile(chunk_loader.findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
-        chunk_loader.updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+        if (ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
+        chunk_thread = std::thread(ChunkLoader::updateChunk, chunk_buffer.top().first, chunk_buffer.top().second);
+        chunk_thread.join();
         chunk_buffer.pop();
     }
 
@@ -399,24 +408,22 @@ void BetterBlox::updateFrame() {
     std::unordered_set<Block> temp;
     for(int i = -render_distance; i <= render_distance; i++){
         for(int j = -render_distance; j <= render_distance; j++) {
-            temp = chunk_loader.readFile(chunk_loader.findFile(relative_x + i, relative_z + j, true));
+            std::string file = ChunkLoader::findFile(relative_x + i, relative_z + j, true);
+            read_thread = std::thread(ChunkLoader::readFile, file, std::ref(temp));
+
             block_rendering.merge(temp);
             temp.clear();
         }
     }
-
-    std::unordered_set<Block>::iterator itr;
-    std::unordered_set<Block> l = block_rendering;
-//        for(auto l : blockRendering) {
-    for (itr = l.begin(); itr != l.end(); itr++) {
+    read_thread.join();
+   for(auto itr : block_rendering) {
         model = glm::mat4(1.0f);
-        model = glm::translate(model, itr->getPosition());
+        model = glm::translate(model, itr.getPosition());
         model_loc = glGetUniformLocation(block_shader->getId(), "model");
-        block_shader->setInt("texture2", ((Block) *itr).getBlockType());
+        block_shader->setInt("texture2", ((Block) itr).getBlockType());
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-//        }
+   }
     processInput(window, combine, x_offset, y_offset, block_rendering);
     block_rendering.clear();
 
@@ -524,9 +531,9 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
                 if (block_rendering.find(Block(position, i)) != block_rendering.end() && !placed) {
                     glm::vec3 cursor = camera.getPosition() + (camera.getFront() * (distance - 1));
                     if (glfwGetMouseButton(window, 0 == GLFW_PRESS))
-                        chunk_loader.placeCube(cursor, combine);
+                        ChunkLoader::placeCube(cursor, combine);
                     if (glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
-                        chunk_loader.deleteBlock(position, i, chunk_loader.findFile(position.x, position.z, false));
+                        ChunkLoader::deleteBlock(position, i, ChunkLoader::findFile(position.x, position.z, false));
                         block_rendering.erase(Block(position));
                     }
 

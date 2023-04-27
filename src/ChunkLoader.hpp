@@ -14,34 +14,41 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <math.h>
+#include <mutex>
 
 // Header Files
 #include "Block.hpp"
 #include "Inventory.hpp"
 #include "perlin.hpp"
 
+
 class ChunkLoader {
 private:
-    int water_level = 5;
+
+    constexpr static int water_level = 5;
 public:
-    void writeFile(glm::vec3 position, int block_id, int x, int z);
-    void deleteBlock(glm::vec3 block, int block_id, const std::string& file);
-    std::unordered_set<Block> readFile(std::string file);
-    std::string findFile(int x, int z, bool true_file);
-    bool checkFile(std::string file);
-    void placeCube(glm::vec3 position, int block_type);
-    void updateTerrain(int start_pos_x, int start_pos_z);
-    void updateChunk(int relative_x, int relative_z);
+    static std::mutex past;
+    static std::mutex present;
+    static std::mutex future;
+    static void writeFile(glm::vec3 position, int block_id, int x, int z);
+    static void deleteBlock(glm::vec3 block, int block_id, const std::string& file);
+    static void readFile(std::string file, std::unordered_set<Block> &);
+    static std::string findFile(int x, int z, bool true_file);
+    static bool checkFile(std::string file);
+    static void placeCube(glm::vec3 position, int block_type);
+    static void updateTerrain(int start_pos_x, int start_pos_z);
+    static void updateChunk(int relative_x, int relative_z);
 };
 
 void ChunkLoader::writeFile(glm::vec3 position, int block_id, int x, int z) {
     std::string file = findFile(x, z, false);
     std::string line;
-    std::fstream ofs(file , std::ios::app);
+    std::fstream  ofs(file, std::ios::app);
     if(!ofs.is_open()) std::cerr << "Save file not open! " << file << std::endl;
-    std::unordered_set<Block> n = readFile(file);
-    if(n.find(Block(position,block_id)) == n.end())
-        ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << std::endl;
+    ofs << position.x << "|" << position.y << "|" << position.z << "|" << block_id << std::endl;
+    // // NEG        Y          X          Z          ID        ATTR/RESERVED
+    // // 63 -- 62 | 61 -- 55 | 54 -- 35 | 34 -- 15 | 14 -- 8 | 7 -- 0
     ofs.close();
 }
 
@@ -81,16 +88,16 @@ void ChunkLoader::deleteBlock(glm::vec3 block, int block_id, const std::string& 
     std::remove(file.c_str());
     std::rename(temp.c_str(), file.c_str());
 }
-
-std::unordered_set<Block> ChunkLoader::readFile(std::string file) {
-    std::unordered_set<Block> p;
+void ChunkLoader::readFile(std::string file, std::unordered_set<Block> & p) {
+    std::lock_guard<std::mutex> guard(future);
     std::vector<std::string > chunks;
     std::ifstream ifs(file);
     glm::vec3 position;
     std::vector<float> line_data;
     if(!ifs.is_open())
         std::cerr << "Cannot Read File: " << file << std::endl;
-    std::string data, l;
+    std::string l;
+    std::string data;
     while (getline(ifs, data)) {
         std::istringstream iss(data);
         while (getline(iss, l, '|')) {
@@ -103,7 +110,7 @@ std::unordered_set<Block> ChunkLoader::readFile(std::string file) {
         line_data.clear();
     }
     ifs.close();
-    return p;
+    return;
 }
 
 std::string ChunkLoader::findFile(int x, int z, bool true_file) {
@@ -183,5 +190,5 @@ void ChunkLoader::updateChunk(int relative_x, int relative_z) {
     }
     ofs.close();
 }
-
+std::mutex ChunkLoader::future;
 #endif
