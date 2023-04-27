@@ -29,6 +29,9 @@
 #include "Shader.hpp"
 #include "stb_image.h"
 
+// Utilities
+#include "utils/RuntimeError.hpp"
+
 class BetterBlox {
 private:
     // Constants
@@ -137,7 +140,7 @@ void BetterBlox::initialize() {
     glfwSetErrorCallback(errorCallback);
 
     if (GL_TRUE != glfwInit()) {
-        throw std::runtime_error(std::string("Failed to initialize GLFW."));
+        throw RuntimeError("Failed to initialize GLFW.", std::source_location::current());
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -151,7 +154,7 @@ void BetterBlox::initialize() {
     window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL) {
         glfwTerminate();
-        throw std::runtime_error(std::string("Failed to create GLFW window."));
+        throw RuntimeError("Failed to create GLFW window.", std::source_location::current());
     }
 
     glfwMakeContextCurrent(window);
@@ -166,7 +169,7 @@ void BetterBlox::initialize() {
 
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        throw std::runtime_error(std::string("Failed to initialize GLAD."));
+        throw RuntimeError("Failed to initialize GLAD.", std::source_location::current());
     }
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
