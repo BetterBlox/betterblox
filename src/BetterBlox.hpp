@@ -30,7 +30,7 @@
 #include "stb_image.h"
 
 // Utilities
-// #include "utils/RuntimeError.hpp"
+#include "utils/RuntimeError.hpp"
 
 class BetterBlox {
 private:
@@ -121,7 +121,7 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
-    // throw RuntimeError("Test", std::source_location::current());
+    // throw RuntimeError("Test", __FILE__, __LINE__);
 
     initialize();
     while(!glfwWindowShouldClose(window)) {
@@ -144,7 +144,7 @@ void BetterBlox::initialize() {
     glfwSetErrorCallback(errorCallback);
 
     if (GL_TRUE != glfwInit()) {
-        // throw RuntimeError("Failed to initialize GLFW.", std::source_location::current());
+        throw RuntimeError("Failed to initialize GLFW.", __FILE__, __LINE__);
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -155,10 +155,10 @@ void BetterBlox::initialize() {
     #endif
 
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", glfwGetPrimaryMonitor(), NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
     if (window == NULL) {
         glfwTerminate();
-        // throw RuntimeError("Failed to create GLFW window.", std::source_location::current());
+        throw RuntimeError("Failed to create GLFW window.", __FILE__, __LINE__);
     }
 
     glfwMakeContextCurrent(window);
@@ -173,7 +173,7 @@ void BetterBlox::initialize() {
 
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        // throw RuntimeError("Failed to initialize GLAD.", std::source_location::current());
+        throw RuntimeError("Failed to initialize GLAD.", __FILE__, __LINE__);
     }
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -429,9 +429,10 @@ void BetterBlox::updateFrame() {
     // if(read_thread.joinable())
     //     read_thread.join();
     ChunkLoader::readFile(file, temp);
-    if(local_block_data.find(file) == local_block_data.end())
+    if(local_block_data.find(file) == local_block_data.end() && !temp.empty()) {
         local_block_data.insert(std::make_pair(file, *&temp));
-    render.pop();
+        render.pop();
+    }
 
     temp.clear();
 
@@ -441,7 +442,7 @@ void BetterBlox::updateFrame() {
 
 
     for(auto itk : local_block_data){
-        std::cerr << "Rendering: " << itk.first << std::endl;
+        std::cerr << "Rendering: " << itk.first <<' ' << itk.second.size() << std::endl;
         for(auto itj : itk.second) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, itj.getPosition());

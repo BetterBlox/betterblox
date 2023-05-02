@@ -125,9 +125,15 @@ void ChunkLoader::readFile(std::string file, std::unordered_set<Block> & p) {
         std::cerr << "Cannot Read File: " << file << std::endl;
 
     while (ifs.read((char *)&decode_b, sizeof (decode_b))) {
-        position.x = ((decode_b.bits.x_) ? (int)decode_b.bits.x * -1 : decode_b.bits.x);
+        int64_t x = decode_b.bits.x;
+        int64_t z = decode_b.bits.z;
+
+        x = (decode_b.bits.x_) ? -x : x;
+        z = (decode_b.bits.z_) ? -z : z;
+
+        position.x = x;
         position.y = decode_b.bits.y;
-        position.z = ((decode_b.bits.z_) ? (int)decode_b.bits.z * -1 : decode_b.bits.z);
+        position.z = z;
         p.insert(Block(position, (int) decode_b.bits.id));
         std::memset(&decode_b, 0, sizeof(decode_b));
     }
