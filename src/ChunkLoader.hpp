@@ -74,6 +74,8 @@ void ChunkLoader::writeFile(glm::vec3 position, int block_id, int x, int z) {
     ofs.close();
     if (!ofs.good()) {
         std::cerr << "Error occurred at writing time!" << std::endl;
+    }else{
+        std::cerr << "Writing: " << block_id << ' ' << position.x << ' ' << position.z << std::endl;
     }
 }
 
@@ -95,26 +97,17 @@ void ChunkLoader::deleteBlock(glm::vec3 block, int block_id, const std::string& 
     else {
         std::cerr << "File Open: "<< temp << std::endl;
     }
-    std::string data;
-    std::string block_string = "";
-    block_string += std::to_string((int)round(block.x));
-    block_string.push_back('|');
-    block_string += std::to_string((int)round(block.y));
-    block_string.push_back('|');
-    block_string += std::to_string((int)round(block.z));
-    block_string.push_back('|');
-    block_string += std::to_string(block_id);
-    while(getline(iof, data)) {
-        if (data != block_string)
-            iofs << data << std::endl;
-    }
+    std::unordered_set<Block> tmp;
+    readFile(file, tmp);
+    tmp.erase(Block(block,block_id));
     iof.close();
-    iofs.close();
     std::remove(file.c_str());
-    std::rename(temp.c_str(), file.c_str());
+    for(auto itr : tmp){
+        writeFile(itr.getPosition(), itr.getBlockType(), itr.getPosition().x, itr.getPosition().z);
+    }
+
 }
 void ChunkLoader::readFile(std::string file, std::unordered_set<Block> & p) {
-    // std::lock_guard<std::mutex> guard(future);
     std::vector<std::string > chunks;
     glm::vec3 position;
     std::string l, data;
@@ -137,7 +130,6 @@ void ChunkLoader::readFile(std::string file, std::unordered_set<Block> & p) {
         p.insert(Block(position, (int) decode_b.bits.id));
         std::memset(&decode_b, 0, sizeof(decode_b));
     }
-    // future.unlock();
     if (ifs.eof()) {
         std::cout << "Reached the end of the file." << std::endl;
     } else if (ifs.fail()) {
