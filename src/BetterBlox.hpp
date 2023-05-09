@@ -17,6 +17,9 @@
 #include <stack>
 #include <string>
 #include <unordered_set>
+#include <thread>
+#include <mutex>
+#include <chrono>
 
 // Header Files
 #include "Block.hpp"
@@ -41,12 +44,13 @@ private:
     static constexpr unsigned int NUM_TRIANGLES = 1;
 
     Camera camera;
-    ChunkLoader chunk_loader;
     std::unordered_set<Block> block_rendering;
+    std::map<std::string, std::unordered_set<Block>> local_block_data;
     float last_x = SCR_WIDTH / 2.0f;
     float last_y = SCR_HEIGHT / 2.0f;
     bool first_mouse = true;
     std::unordered_set<Block> cube_positions;
+    std::stack<std::pair<int, int> > render;
     GLFWwindow *window; // Check BetterBlox::initialize() for initialization
     int combine;
     float x_offset;
@@ -65,6 +69,8 @@ private:
     // Timing
     float delta_time = 0.0f;
     float last_frame = 0.0f;
+    std::chrono::system_clock::time_point last_call_time = std::chrono::system_clock::from_time_t(0);
+
 
     // Shaders
     // These need to be pointers as they do not have a default constructor.
@@ -74,8 +80,11 @@ private:
     Shader *block_shader = nullptr;
     Shader *inventory_shader = nullptr;
 
+    // MultiThreading
+    // std::thread chunk_thread;
+    // std::thread read_thread;
+
     // Settings
-    float water_level = 5;
     int render_distance = 3;
     int buffer = 1;
     bool show_inventory_menu = false;
@@ -88,7 +97,7 @@ private:
     static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
     static void errorCallback(int error, const char *msg);
 
-    void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::unordered_set<Block>& block_rendering);
+    void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::map<std::string, std::unordered_set<Block> >& chunk_rendering, std::chrono::system_clock::time_point&);
 
     // Static wrapper functions are needed to pass these member functions to GLFW since they access other members.
     void mouseCallback(double x_pos_in, double y_pos_in);
@@ -114,15 +123,23 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
+    // throw RuntimeError("Test", __FILE__, __LINE__);
+
     initialize();
     while(!glfwWindowShouldClose(window)) {
         updateFrame();
     }
+
+    // if (chunk_thread.joinable()) chunk_thread.join();
+    // if (read_thread.joinable()) read_thread.join();
     glfwTerminate(); // We could probably have a terminate function.
 }
 
 void BetterBlox::initialize() {
-    camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    // CoolDown
+    const int cooldown_duration = 5;
+
+    camera = Camera(glm::vec3(0.0f, 11.0f, 3.0f));
     inventory = Inventory(10);
 
     // Opengl treats the 0,0 locations on images to be the bottom. This flips the images so the 0, 0 will be at the top.
@@ -132,7 +149,7 @@ void BetterBlox::initialize() {
     glfwSetErrorCallback(errorCallback);
 
     if (GL_TRUE != glfwInit()) {
-        throw RuntimeError("Failed to initialize GLFW.", std::source_location::current());
+        throw RuntimeError("Failed to initialize GLFW.", __FILE__, __LINE__);
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -146,7 +163,7 @@ void BetterBlox::initialize() {
     window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
     if (window == NULL) {
         glfwTerminate();
-        throw RuntimeError("Failed to create GLFW window.", std::source_location::current());
+        throw RuntimeError("Failed to create GLFW window.", __FILE__, __LINE__);
     }
 
     glfwMakeContextCurrent(window);
@@ -161,7 +178,7 @@ void BetterBlox::initialize() {
 
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        throw RuntimeError("Failed to initialize GLAD.", std::source_location::current());
+        throw RuntimeError("Failed to initialize GLAD.", __FILE__, __LINE__);
     }
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -322,7 +339,6 @@ void BetterBlox::initialize() {
     glActiveTexture(GL_TEXTURE0 + WATER);
     glBindTexture(GL_TEXTURE_2D, water_texture);
 
-
     // Shader loading
     shader = new Shader("assets/shaders/vertexShader1.glsl", "assets/shaders/fragmentShader1.glsl");
     dot_shader = new Shader("assets/shaders/vertForPointer.glsl", "assets/shaders/fragForPointer.glsl");
@@ -343,7 +359,7 @@ void BetterBlox::updateFrame() {
     else relative_z = (camera.getPosition().z/16);
     for(int i = -render_distance - buffer; i <= render_distance + buffer; i++){
         for(int j = -render_distance - buffer; j <= render_distance + buffer; j++){
-            if(!chunk_loader.checkFile(chunk_loader.findFile(relative_x + i, relative_z + j, true))) {
+            if(!ChunkLoader::checkFile(ChunkLoader::findFile(relative_x + i, relative_z + j, true))) {
                 chunk_buffer.emplace(relative_x + i, relative_z + j);
                 std::cerr << "writing file: Chunk(" << relative_x + i  << ',' << relative_z + j << ").txt" << std::endl;
             }
@@ -351,8 +367,9 @@ void BetterBlox::updateFrame() {
     }
 
     if (!chunk_buffer.empty()) {
-        if (chunk_loader.checkFile(chunk_loader.findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
-        chunk_loader.updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
+        if (ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
+            // chunk_thread = std::thread(ChunkLoader::updateChunk, chunk_buffer.top().first, chunk_buffer.top().second);
+            ChunkLoader::updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
         chunk_buffer.pop();
     }
 
@@ -399,29 +416,47 @@ void BetterBlox::updateFrame() {
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
     //rendering
-    std::unordered_set<Block> temp;
+
+    //read cache
+    //write cache
     for(int i = -render_distance; i <= render_distance; i++){
         for(int j = -render_distance; j <= render_distance; j++) {
-            temp = chunk_loader.readFile(chunk_loader.findFile(relative_x + i, relative_z + j, true));
-            block_rendering.merge(temp);
-            temp.clear();
+            // // read_thread.join();
+            if(local_block_data.find(ChunkLoader::findFile(relative_x + i, relative_z + j, true)) == local_block_data.end())
+                render.push(std::make_pair(relative_x + i, relative_z + j));
         }
     }
 
-    std::unordered_set<Block>::iterator itr;
-    std::unordered_set<Block> l = block_rendering;
-//        for(auto l : blockRendering) {
-    for (itr = l.begin(); itr != l.end(); itr++) {
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, itr->getPosition());
-        model_loc = glGetUniformLocation(block_shader->getId(), "model");
-        block_shader->setInt("texture2", ((Block) *itr).getBlockType());
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+    std::unordered_set<Block> temp;
+    std::string file = ChunkLoader::findFile(render.top().first, render.top().second, true);
+    // read_thread = std::thread(ChunkLoader::readFile, file, std::ref(*&temp));
+    // if(read_thread.joinable())
+    //     read_thread.join();
+    ChunkLoader::readFile(file, temp);
+    if(local_block_data.find(file) == local_block_data.end() && !temp.empty()) {
+        local_block_data.insert(std::make_pair(file, *&temp));
+        render.pop();
     }
-//        }
-    processInput(window, combine, x_offset, y_offset, block_rendering);
-    block_rendering.clear();
+
+    temp.clear();
+
+
+    // if(chunk_thread.joinable())
+    //     chunk_thread.join();
+
+
+    for(auto itk : local_block_data){
+        // std::cerr << "Rendering: " << itk.first <<' ' << itk.second.size() << std::endl;
+        for(auto itj : itk.second) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, itj.getPosition());
+            model_loc = glGetUniformLocation(block_shader->getId(), "model");
+            block_shader->setInt("texture2", ((Block)itj).getBlockType());
+            glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+   }
+    processInput(window, combine, x_offset, y_offset, local_block_data, last_call_time);
 
     model = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(((float)((float)SCR_HEIGHT / (float)SCR_WIDTH)), 1.0f, 1.0f));
@@ -460,9 +495,11 @@ void BetterBlox::updateFrame() {
 
     }
 
+
     // check and call events and swap the buffers
     glfwSwapBuffers(window);
     glfwPollEvents();
+
 }
 
 void BetterBlox::frameBufferSizeCallback(GLFWwindow *window, int width, int height) {
@@ -476,7 +513,10 @@ void BetterBlox::errorCallback(int error, const char *msg) {
     std::cerr << s << std::endl;
 }
 
-void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::unordered_set<Block>& block_rendering) {
+void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::map<std::string, std::unordered_set<Block> >& chunk_rendering, std::chrono::system_clock::time_point& last_call_time) {
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = now - last_call_time;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
@@ -516,24 +556,32 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.processKeyboard(DOWN, delta_time);
     if (glfwGetMouseButton(window, 0 == GLFW_PRESS) || glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
-        glm::vec3 position;
-        bool placed = false;
+        if (elapsed_seconds < std::chrono::milliseconds (350)) {
+            return;
+        }
         for (float distance = 1; distance < 8; distance++) {
-            glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * distance);
-            position.x = (float)std::round(camera_position.x);
-            position.y = (float)std::round(camera_position.y);
-            position.z = (float)std::round(camera_position.z);
+            glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * (distance));
+            camera_position.x = (float)std::round(camera_position.x);
+            camera_position.y = (float)std::round(camera_position.y);
+            camera_position.z = (float)std::round(camera_position.z);
             for (int i = 0; i < 10; i++) {   // Check for a valid block id
-                if (block_rendering.find(Block(position, i)) != block_rendering.end() && !placed) {
-                    glm::vec3 cursor = camera.getPosition() + (camera.getFront() * (distance - 1));
-                    if (glfwGetMouseButton(window, 0 == GLFW_PRESS))
-                        chunk_loader.placeCube(cursor, combine);
-                    if (glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
-                        chunk_loader.deleteBlock(position, i, chunk_loader.findFile(position.x, position.z, false));
-                        block_rendering.erase(Block(position));
+                glm::vec3 cursor = camera.getPosition() + (camera.getFront() * (distance - 1));
+                cursor.x = (float)std::round(cursor.x);
+                cursor.y = (float)std::round(cursor.y);
+                cursor.z = (float)std::round(cursor.z);
+                std::string chunk = ChunkLoader::findFile(camera_position.x, camera_position.z, false);
+                if (chunk_rendering.find(chunk)->second.find(Block(camera_position,i)) != chunk_rendering.find(chunk)->second.end()) {
+                    if (glfwGetMouseButton(window, 0 == GLFW_PRESS)) {
+                        ChunkLoader::placeCube(cursor, combine);
+                        chunk_rendering.find(chunk)->second.insert(Block(cursor,combine));
                     }
 
-                    placed = true;
+                    else if (glfwGetMouseButton(window, 1 == GLFW_PRESS)) {
+                        ChunkLoader::deleteBlock(camera_position, i, ChunkLoader::findFile(camera_position.x, camera_position.z, false));
+                        chunk_rendering.find(chunk)->second.erase(Block(camera_position, i));
+                    }
+                    last_call_time = now;
+                    return;
                 }
             }
         }
