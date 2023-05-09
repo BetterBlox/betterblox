@@ -14,8 +14,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <math.h>
-#include <mutex>
+#include <cmath>
 #include <filesystem>
 #include <bitset>
 #include <cstring>
@@ -24,6 +23,7 @@
 #include "Block.hpp"
 #include "Inventory.hpp"
 #include "perlin.hpp"
+#include "Structures.hpp"
 
 union BlockInfo {
     struct {
@@ -61,11 +61,14 @@ void ChunkLoader::writeFile(glm::vec3 position, int block_id, int x, int z) {
     std::string file = findFile(x, z, false);
     std::string line;
     std::fstream  ofs(file, std::ios::app | std::ios::binary);
+    std::cerr << "writing file: " << file << std::endl;
     if(!ofs.is_open()) std::cerr << "Save file not open! " << file << std::endl;
+    // NEG
     uint64_t x_ = (x < 0) ? 1 : 0;
     uint64_t z_ = (z < 0) ? 1 : 0;
-    uint64_t y = (int)round(position.y);
     uint64_t attr = 0;
+    // X, Y, & Z
+    uint64_t y = (int)round(position.y);
     x = abs(x);
     z = abs(z);
     BlockInfo encode_b{attr, (uint64_t)block_id, static_cast<uint64_t>(z), static_cast<uint64_t>(x), y, z_, x_};
@@ -165,7 +168,6 @@ bool ChunkLoader::checkFile(std::string path) {
 }
 
 void ChunkLoader::placeCube(glm::vec3 position, int block_type) {
-    std::unordered_set<Block>::iterator ip;
     position.x = (float )round(position.x);
     position.y = (float )round(position.y);
     position.z = (float )round(position.z);
@@ -174,9 +176,17 @@ void ChunkLoader::placeCube(glm::vec3 position, int block_type) {
 }
 
 void ChunkLoader::updateTerrain(int start_pos_x, int start_pos_z) {
-    float h = perlin((float)(start_pos_x - 20) * 0.15f, (float)(start_pos_z - 20) * 0.15f);
-    if (h > water_level)
+    float h = perlin((float)(start_pos_x) * 0.15f, (float)(start_pos_z) * 0.15f);
+    float e = perlin((float)(h) * .5f, (float)(start_pos_x) * (float)(start_pos_z) * 0.15f);
+
+    if (h > water_level) {
         placeCube(glm::vec3(start_pos_x, h, start_pos_z), GRASS);
+        if (e < 2.75)
+            for(auto itr : Structures::staticStructTree(glm::vec3(start_pos_x, h, start_pos_z), findFile(start_pos_x, start_pos_z, false))){
+                placeCube(itr.getPosition(), itr.getBlockType());
+            }
+            // placeCube(glm::vec3(start_pos_x, h + 1, start_pos_z), DIAMOND_ORE);
+    }
     else
         placeCube(glm::vec3(start_pos_x, water_level, start_pos_z), WATER);
 }
@@ -216,5 +226,4 @@ void ChunkLoader::updateChunk(int relative_x, int relative_z) {
     }
     ofs.close();
 }
-std::mutex ChunkLoader::future;
 #endif

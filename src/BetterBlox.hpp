@@ -160,7 +160,7 @@ void BetterBlox::initialize() {
     #endif
 
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL) {
         glfwTerminate();
         throw RuntimeError("Failed to create GLFW window.", __FILE__, __LINE__);
@@ -361,13 +361,12 @@ void BetterBlox::updateFrame() {
         for(int j = -render_distance - buffer; j <= render_distance + buffer; j++){
             if(!ChunkLoader::checkFile(ChunkLoader::findFile(relative_x + i, relative_z + j, true))) {
                 chunk_buffer.emplace(relative_x + i, relative_z + j);
-                std::cerr << "writing file: Chunk(" << relative_x + i  << ',' << relative_z + j << ").txt" << std::endl;
             }
         }
     }
 
     if (!chunk_buffer.empty()) {
-        if (ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
+        if (!ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)))
             // chunk_thread = std::thread(ChunkLoader::updateChunk, chunk_buffer.top().first, chunk_buffer.top().second);
             ChunkLoader::updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
         chunk_buffer.pop();
