@@ -17,8 +17,6 @@
 #include <stack>
 #include <string>
 #include <unordered_set>
-#include <thread>
-#include <mutex>
 #include <chrono>
 
 // Header Files
@@ -351,6 +349,7 @@ void BetterBlox::initialize() {
 }
 
 void BetterBlox::updateFrame() {
+    // Finds the chunks that need to be written
     std::stack<std::pair<int,int>> chunk_buffer;
     int relative_x, relative_z;
     if(camera.getPosition().x < 0) relative_x = ((camera.getPosition().x - 16)/16);
@@ -365,10 +364,9 @@ void BetterBlox::updateFrame() {
             }
         }
     }
-
+    // Writes the chunks one frame at a time
     if (!chunk_buffer.empty()) {
-        if (ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)));
-            // chunk_thread = std::thread(ChunkLoader::updateChunk, chunk_buffer.top().first, chunk_buffer.top().second);
+        if (!ChunkLoader::checkFile(ChunkLoader::findFile(chunk_buffer.top().first, chunk_buffer.top().second, true)))
             ChunkLoader::updateChunk(chunk_buffer.top().first, chunk_buffer.top().second);
         chunk_buffer.pop();
     }
@@ -415,13 +413,9 @@ void BetterBlox::updateFrame() {
     model_loc = glGetUniformLocation(block_shader->getId(), "model");
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
 
-    //rendering
-
-    //read cache
-    //write cache
+    // Finds the chunks that need to be rendered
     for(int i = -render_distance; i <= render_distance; i++){
         for(int j = -render_distance; j <= render_distance; j++) {
-            // // read_thread.join();
             if(local_block_data.find(ChunkLoader::findFile(relative_x + i, relative_z + j, true)) == local_block_data.end())
                 render.push(std::make_pair(relative_x + i, relative_z + j));
         }
@@ -429,24 +423,15 @@ void BetterBlox::updateFrame() {
 
     std::unordered_set<Block> temp;
     std::string file = ChunkLoader::findFile(render.top().first, render.top().second, true);
-    // read_thread = std::thread(ChunkLoader::readFile, file, std::ref(*&temp));
-    // if(read_thread.joinable())
-    //     read_thread.join();
     ChunkLoader::readFile(file, temp);
     if(local_block_data.find(file) == local_block_data.end() && !temp.empty()) {
         local_block_data.insert(std::make_pair(file, *&temp));
         render.pop();
     }
-
     temp.clear();
 
-
-    // if(chunk_thread.joinable())
-    //     chunk_thread.join();
-
-
+    // rendering of blocks
     for(auto itk : local_block_data){
-        // std::cerr << "Rendering: " << itk.first <<' ' << itk.second.size() << std::endl;
         for(auto itj : itk.second) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, itj.getPosition());
@@ -455,7 +440,8 @@ void BetterBlox::updateFrame() {
             glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-   }
+    }
+    // User input function call
     processInput(window, combine, x_offset, y_offset, local_block_data, last_call_time);
 
     model = glm::mat4(1.0f);
@@ -512,8 +498,17 @@ void BetterBlox::errorCallback(int error, const char *msg) {
     s = " [" + std::to_string(error) + "] " + msg + '\n';
     std::cerr << s << std::endl;
 }
-
+/**
+ * @brief User Inputted Keystrokes for game functions
+ * @param window Game Window
+ * @param combine Block Identity
+ * @param x_offset X - Player position
+ * @param y_offset Y - Player position
+ * @param chunk_rendering Local Cache
+ * @param last_call_time Cooldown since last called
+ */
 void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::map<std::string, std::unordered_set<Block> >& chunk_rendering, std::chrono::system_clock::time_point& last_call_time) {
+    // initializing variables for cooldown
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = now - last_call_time;
 
@@ -559,6 +554,7 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
         if (elapsed_seconds < std::chrono::milliseconds (350)) {
             return;
         }
+        // break or insert blocks into the save files and local data storage.
         for (float distance = 1; distance < 8; distance++) {
             glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * (distance));
             camera_position.x = (float)std::round(camera_position.x);
