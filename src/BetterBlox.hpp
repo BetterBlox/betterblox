@@ -41,16 +41,23 @@ private:
     // to initialize it at compile time.
     static constexpr unsigned int NUM_TRIANGLES = 1;
 
-    Camera camera;
-    std::unordered_set<Block> block_rendering;
+    Camera camera; // This can also be thought of as the player.
+
+    std::unordered_set<Block> block_rendering; // Were the render blocks are stored
+
     std::map<std::string, std::unordered_set<Block>> local_block_data;
+
     float last_x = SCR_WIDTH / 2.0f;
     float last_y = SCR_HEIGHT / 2.0f;
+
     bool first_mouse = true;
     std::unordered_set<Block> cube_positions;
     std::stack<std::pair<int, int> > render;
+
     GLFWwindow *window; // Check BetterBlox::initialize() for initialization
-    int combine;
+
+    int combine; // Used for getting user input
+
     float x_offset;
     float y_offset;
 
@@ -88,23 +95,68 @@ private:
     bool show_inventory_menu = false;
 
     // Function Prototypes
+    /**
+     * This sets up GLFW to display a window that will work for OpenGL. Then it creates the block geometry
+     * It adds textures and configures all OpenGL settings for startup.
+     */
     void initialize();
+
+    /**
+     * This is stuff that happens every frame. Updating locations of objects and getting user input.
+     */
     void updateFrame();
 
     // These functions need to be static to be able to pass them to GLFW.
     static void frameBufferSizeCallback(GLFWwindow *window, int width, int height);
     static void errorCallback(int error, const char *msg);
 
+    /**
+     * This is for getting the user input from keyboard and mouse and modifying certain values in the program.
+     * @param window
+     * @param combine
+     * @param x_offset
+     * @param y_offset
+     * @param chunk_rendering
+     */
     void processInput(GLFWwindow *window, int &combine, float &x_offset, float &y_offset, std::map<std::string, std::unordered_set<Block> >& chunk_rendering, std::chrono::system_clock::time_point&);
 
     // Static wrapper functions are needed to pass these member functions to GLFW since they access other members.
+    /**
+     * for mouse actions such as panning
+     */
     void mouseCallback(double x_pos_in, double y_pos_in);
     static void mouseCallbackStatic(GLFWwindow *window, double x_pos_in, double y_pos_in);
+
+    /**
+     * This was used to start with but is not very relevant in the final release
+     * It allows the mouse wheel to zoom in
+     * @param x_offset
+     * @param y_offset
+     */
     void scrollCallback(double x_offset, double y_offset);
     static void scrollCallbackStatic(GLFWwindow *window, double x_offset, double y_offset);
 
+    /**
+     * This is a way of creating a gradient background on the window. It takes rgba values for the top and bottom of the screen
+     * @param top_r
+     * @param top_g
+     * @param top_b
+     * @param top_a
+     * @param bot_r
+     * @param bot_g
+     * @param bot_b
+     * @param bot_a
+     */
     void myglGradientBackground(float top_r, float top_g, float top_b, float top_a, float bot_r, float bot_g, float bot_b,
                                  float bot_a);
+
+    /**
+     * This is used to make texture loading easier. It takes a bunch of lines and breaks them down into several parameters.
+     * @param texture The id of the texture that the image is being imported for.
+     * @param path The path to the image file
+     * @param type How the image pixels will be used. Linear will take the actual pixel value and gradient will take the average of the pixels
+     * @param rgb_type RGB or RGBA
+     */
     void loadTexture(unsigned int &texture, std::string path, unsigned int type, unsigned int rgb_type);
 
 public:
@@ -154,7 +206,7 @@ void BetterBlox::initialize() {
     #endif
 
 
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "BetterBlox", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL) {
         glfwTerminate();
         throw RuntimeError("Failed to create GLFW window.", __FILE__, __LINE__);
@@ -439,6 +491,7 @@ void BetterBlox::updateFrame() {
     }
     // User input function call
     processInput(window, combine, x_offset, y_offset, local_block_data, last_call_time);
+    // local_block_data.clear();
 
     model = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(((float)((float)SCR_HEIGHT / (float)SCR_WIDTH)), 1.0f, 1.0f));
@@ -551,7 +604,7 @@ void BetterBlox::processInput(GLFWwindow *window, int &combine, float &x_offset,
             return;
         }
         // break or insert blocks into the save files and local data storage.
-        for (float distance = 1; distance < 8; distance++) {
+        for (float distance = 1; distance < 15; distance++) {
             glm::vec3 camera_position = camera.getPosition() + (camera.getFront() * (distance));
             camera_position.x = (float)std::round(camera_position.x);
             camera_position.y = (float)std::round(camera_position.y);
