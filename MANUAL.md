@@ -35,3 +35,7 @@ Building is a bit tricky as we don't really know how to do it without the IDE so
 - 4 - Bedrock
 - 5 - Grass
 - 6 - Water
+
+
+## Known Issues
+There is no game physics in place so the user can phase through blocks and there isn’t anything like gravity so the user floats through the world. Placing and Breaking a block is not very optimal as it is inconsistent with detecting the block the user is trying to place/delete. So sometimes, a user will be able to place a block diagonally from another block or a user could be looking at a block to delete but the game doesn’t register to delete that block. There is a timer between each place and delete block instance so you have to wait a short time before each place and break.
