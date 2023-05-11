@@ -1,5 +1,5 @@
 #include "BetterBlox.hpp"
-// #include "utils/RuntimeError.hpp"
+#include "utils/RuntimeError.hpp"
 
 int main() {
     try {

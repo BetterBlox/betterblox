@@ -121,15 +121,11 @@ BetterBlox::~BetterBlox() {
 }
 
 void BetterBlox::run() {
-    // throw RuntimeError("Test", __FILE__, __LINE__);
-
     initialize();
     while(!glfwWindowShouldClose(window)) {
         updateFrame();
     }
 
-    // if (chunk_thread.joinable()) chunk_thread.join();
-    // if (read_thread.joinable()) read_thread.join();
     glfwTerminate(); // We could probably have a terminate function.
 }
 
